@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>SIGAA IFAL - v30 ERP Personalizado</title>
+    <style>
+        :root { --ifal-blue: #004a8d; --ifal-green: #28a745; --border: #ccc; }
+        body { font-family: Arial, sans-serif; margin: 0; background: #f4f4f4; font-size: 11px; }
+        .hidden { display: none !important; }
+        header { background: #fff; border-bottom: 2px solid var(--ifal-blue); padding: 10px 20px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .container { padding: 20px; max-width: 1500px; margin: auto; }
+        
+        .tab-bar { display: flex; background: #ddd; border-bottom: 2px solid var(--ifal-blue); margin-bottom: 15px; flex-wrap: wrap; }
+        .tab-btn { padding: 12px 25px; cursor: pointer; border: none; background: none; font-weight: bold; color: #444; border-right: 1px solid #ccc; }
+        .tab-btn.active { background: var(--ifal-blue); color: white; }
+        
+        .sub-tab-bar { display: flex; background: #eee; border-bottom: 1px solid #999; margin-bottom: 15px; }
+        .sub-btn { padding: 10px 18px; cursor: pointer; border: none; background: none; font-weight: bold; font-size: 11px; color: #555; }
+        .sub-btn.active { background: #fff; border: 1px solid #999; border-bottom: 1px solid #fff; margin-bottom: -1px; color: var(--ifal-blue); }
+
+        table { width: 100%; border-collapse: collapse; background: #fff; margin-bottom: 20px; }
+        th { background: #f0f0f0; color: #333; padding: 8px; border: 1px solid var(--border); font-weight: bold; text-transform: uppercase; }
+        td { border: 1px solid var(--border); padding: 5px; text-align: center; height: 28px; }
+        .turma-header { background: #444; color: white; text-align: left; padding: 10px; font-weight: bold; display: flex; justify-content: space-between; align-items: center; }
+        .badge-cons { background: #ffc107; color: #000; padding: 2px 6px; border-radius: 4px; font-size: 9px; margin-left: 10px; }
+        .badge-pp { background: #d32f2f; color: #fff; padding: 2px 6px; border-radius: 4px; font-size: 9px; margin-left: 5px; }
+        
+        input[type=number] { border: 1px solid #999; padding: 8px; background: #fff; text-align: center; width: 45px; }
+        input:disabled { background: #eeeeee !important; color: #777 !important; cursor: not-allowed; border: 1px solid #ddd; }
+        
+        .btn-blue { background: var(--ifal-blue); color: white; border: none; padding: 10px 20px; cursor: pointer; font-weight: bold; }
+        .btn-green { background: var(--ifal-green); color: white; border: none; padding: 10px 20px; cursor: pointer; font-weight: bold; }
+        .btn-red { background: #d32f2f; color: white; border: none; padding: 5px 10px; cursor: pointer; }
+        .btn-orange { background: #f57c00; color: white; border: none; padding: 5px 10px; cursor: pointer; }
+        .btn-gray { background: #666; color: white; border: none; padding: 8px 15px; cursor: pointer; }
+
+        .tem-falta { background: #ffcccc !important; color: red; font-weight: bold; cursor: pointer; }
+        .aula-cancelada { background: #d32f2f !important; color: white !important; font-weight: bold; cursor: pointer; }
+        .aula-extra { background: #e8f5e9 !important; border: 1px solid var(--ifal-green) !important; color: var(--ifal-green); font-weight: bold; }
+        .aluno-trancado { background: #eee; color: #777 !important; font-weight: bold; }
+        .aprovado { color: var(--ifal-green); font-weight: bold; }
+        .reprovado { color: #d32f2f; font-weight: bold; }
+        .cursando { color: #004a8d; font-weight: bold; }
+        .topic-container { background: #fff; border-bottom: 1px solid #ccc; padding: 15px 10px; text-align: left; }
+        .topic-parent { font-size: 13px; color: #333; font-weight: normal; margin-bottom: 5px; }
+        .topic-sub { color: #666; font-size: 11px; padding-left: 20px; margin-top: 4px; display: flex; align-items: center; }
+        .topic-sub::before { content: " "; margin-right: 8px; font-size: 10px; }
+        .resumo-faltas { background: #f8f9fa; padding: 10px; text-align: right; font-weight: bold; border: 1px solid #ddd; border-top: none; margin-bottom: 20px; font-size: 13px; }
+        .ano-header { background: #004a8d; color: white; padding: 10px; margin-top: 20px; font-size: 14px; border-radius: 4px 4px 0 0; }
+    </style>
+</head>
+<body>
+
+<header id="main-header" class="hidden">
+    <div><strong>SIGAA - IFAL | <span id="role-display"></span></strong></div>
+    <div>
+        <button class="btn-gray" onclick="sys.start()">← Início</button>
+        <span id="display-user" style="margin: 0 15px; font-weight: bold;"></span>
+        <button class="btn-gray" onclick="location.reload()">Sair</button>
+    </div>
+</header>
+
+<div id="screen-auth" class="container">
+    <div style="width:380px; margin: 60px auto; background:#fff; padding:30px; border:1px solid #ccc; text-align:center;">
+        <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/1/15/IFAL_logo.png/200px-IFAL_logo.png" style="width:80px; margin-bottom:10px">
+        <div id="login-form">
+            <input type="text" id="l-user" placeholder="Matrícula" style="width:90%; margin-bottom:10px"><br>
+            <input type="password" id="l-pass" placeholder="Senha" style="width:90%; margin-bottom:15px"><br>
+            <button class="btn-blue" style="width:95%" onclick="sys.login()">ENTRAR</button>
+            <p><a href="#" onclick="sys.toggleAuth(true)">Novo Usuário</a></p>
+        </div>
+        <div id="reg-form" class="hidden">
+            <input type="text" id="r-name" placeholder="Nome Completo" style="width:90%; margin-bottom:8px">
+            <input type="text" id="r-user" placeholder="Matrícula" style="width:90%; margin-bottom:8px">
+            <input type="password" id="r-pass" placeholder="Senha" style="width:90%; margin-bottom:8px">
+            <select id="r-type" style="width:90%; margin-bottom:15px">
+                <option value="aluno">Aluno</option>
+                <option value="professor">Professor</option>
+                <option value="gestao">Gestão</option>
+            </select>
+            <button class="btn-green" style="width:95%" onclick="sys.register()">CADASTRAR</button>
+            <p><a href="#" onclick="sys.toggleAuth(false)">Voltar</a></p>
+        </div>
+    </div>
+</div>
+
+<div id="screen-gestao" class="container hidden">
+    <div class="tab-bar">
+        <button class="tab-btn active" onclick="sys.switchTab('g-matriz', this)">Matriz Curricular</button>
+        <button class="tab-btn" onclick="sys.switchTab('g-consolidar', this)">Consolidação</button>
+        <button class="tab-btn" onclick="sys.switchTab('g-alunos', this)">Gestão de Alunos</button>
+    </div>
+    <div id="g-matriz" class="tab-content">
+        <div style="background:#fff; padding:20px; border:1px solid #ccc; margin-bottom:20px">
+            <select id="g-course"><option value="AGROPE">AGROPE</option><option value="AGROIND">AGROIND</option><option value="SUPERIOR">SUPERIOR</option></select>
+            <input type="text" id="g-name" placeholder="Nome Disciplina">
+            <input type="text" id="g-code" placeholder="Código">
+            <button class="btn-green" onclick="sys.addDisc()">Adicionar</button>
+        </div>
+        <div id="render-g-matriz"></div>
+    </div>
+    <div id="g-consolidar" class="tab-content hidden">
+        <button class="btn-red" style="margin-bottom:15px" onclick="sys.deleteAllClasses()">EXCLUIR TODAS AS TURMAS</button>
+        <div id="render-g-turmas"></div>
+    </div>
+    <div id="g-alunos" class="tab-content hidden">
+        <div style="background:#fff; padding:20px; border:1px solid #ccc; margin-bottom:20px">
+            <h4>Pré-cadastrar Aluno</h4>
+            <input type="text" id="ga-name" placeholder="Nome do Aluno" style="width:30%">
+            <input type="text" id="ga-user" placeholder="Matrícula">
+            <button class="btn-green" onclick="sys.gestaoAddAluno()">Cadastrar Aluno</button>
+        </div>
+        <div id="render-g-alunos"></div>
+    </div>
+</div>
+
+<div id="screen-prof" class="container hidden">
+    <div style="background:#fff; padding:15px; border:1px solid #ccc; margin-bottom:15px">
+        <select id="p-sel-course" onchange="sys.updDisc()"></select>
+        <select id="p-sel-disc"></select>
+        <select id="p-ano"><option value="2026.1">2026.1</option><option value="2026.2">2026.2</option></select>
+        <select id="p-turno"><option value="MATUTINO">Matutino</option><option value="VESPERTINO">Vespertino</option><option value="NOTURNO">Noturno</option></select>
+        <input type="text" id="p-horario" placeholder="Ex: 2M123" style="width:80px">
+        <label style="margin-left: 10px;"><input type="checkbox" id="p-is-pp"> Turma PP</label>
+        <button class="btn-blue" onclick="sys.createClass()">Criar Turma</button>
+    </div>
+    <div id="p-class-tabs" class="tab-bar"></div>
+    <div id="p-work-area" class="hidden" style="background:#fff; border:1px solid #ccc; padding:15px">
+        <div id="p-active-title" class="turma-header"></div>
+        <div class="sub-tab-bar">
+            <button class="sub-btn" id="st-notas" onclick="sys.setSub('notas')">LANÇAR NOTAS</button>
+            <button class="sub-btn" id="st-freq" onclick="sys.setSub('freq')">FREQUÊNCIA</button>
+            <button class="sub-btn" id="st-topicos" onclick="sys.setSub('topicos')">LANÇAR TÓPICOS</button>
+            <button class="sub-btn" id="st-quiz" onclick="sys.setSub('quiz')">AVALIAÇÕES ONLINE</button>
+            <button class="sub-btn" id="st-mat" onclick="sys.setSub('mat')">MATRICULAR ALUNO</button>
+        </div>
+        <div id="p-sub-view"></div>
+    </div>
+</div>
+
+<div id="screen-aluno" class="container hidden">
+    <div class="tab-bar">
+        <button class="tab-btn active" onclick="sys.switchTab('a-boletim', this)">Meu Boletim</button>
+        <button class="tab-btn" onclick="sys.switchTab('a-freq-list', this)">Minha Frequência</button>
+        <button class="tab-btn" onclick="sys.switchTab('a-quiz', this)">Avaliações Online</button>
+        <button class="tab-btn" onclick="sys.switchTab('a-topicos', this)">Tópicos de Aula</button>
+    </div>
+    <div id="a-boletim" class="tab-content"></div>
+    <div id="a-freq-list" class="tab-content hidden"></div>
+    <div id="a-quiz" class="tab-content hidden"><div id="r-a-quiz"></div></div>
+    <div id="a-topicos" class="tab-content hidden"></div>
+</div>
+
+<script>
+const sys = {
+    db: JSON.parse(localStorage.getItem('ifal_v30')) || { users: [], classes: [], library: { AGROPE: [], AGROIND: [], SUPERIOR: [] } },
+    session: null,
+    activeT: null,
+    activeS: 'notas',
+    activeMes: new Date().toISOString().slice(0,7),
+
+    save() { localStorage.setItem('ifal_v30', JSON.stringify(this.db)); },
+    fmt(v, isRec) { if(v===undefined||v===""||v===null) return isRec?"--":"0,00"; return parseFloat(v).toFixed(2).replace('.', ','); },
+    fmtD(d) { if(!d) return ""; const p = d.split('-'); return `${p[2]}/${p[1]}/${p[0]}`; },
+    isFuturo(k) { return new Date(k + "T23:59:59") > new Date(); },
+    toggleAuth(r) { document.getElementById('login-form').classList.toggle('hidden', r); document.getElementById('reg-form').classList.toggle('hidden', !r); },
+
+    login() {
+        const u = this.db.users.find(x => x.user === document.getElementById('l-user').value && x.pass === document.getElementById('l-pass').value);
+        if(u) { this.session = u; this.start(); } else alert("Erro!");
+    },
+    register() {
+        const u = { name: document.getElementById('r-name').value.toUpperCase(), user: document.getElementById('r-user').value, pass: document.getElementById('r-pass').value, type: document.getElementById('r-type').value, status: 'ativo' };
+        this.db.users.push(u); this.save(); this.toggleAuth(false);
+    },
+
+    start() {
+        ['screen-auth', 'screen-gestao', 'screen-prof', 'screen-aluno'].forEach(s => document.getElementById(s).classList.add('hidden'));
+        document.getElementById('main-header').classList.remove('hidden');
+        document.getElementById('display-user').innerText = this.session.name;
+        document.getElementById('role-display').innerText = this.session.type.toUpperCase();
+        if(this.session.type === 'gestao') { document.getElementById('screen-gestao').classList.remove('hidden'); this.renderGestao(); }
+        else if(this.session.type === 'professor') { document.getElementById('screen-prof').classList.remove('hidden'); this.initProf(); }
+        else { document.getElementById('screen-aluno').classList.remove('hidden'); this.renderAluno(); }
+    },
+
+    initProf() {
+        document.getElementById('p-sel-course').innerHTML = Object.keys(this.db.library).map(c => `<option value="${c}">${c}</option>`).join('');
+        this.updDisc(); this.renderProfTabs();
+    },
+    updDisc() {
+        const c = document.getElementById('p-sel-course').value;
+        document.getElementById('p-sel-disc').innerHTML = (this.db.library[c]||[]).map(d => `<option value="${d.cod}">${d.nome}</option>`).join('');
+    },
+    createClass() {
+        const c = document.getElementById('p-sel-course').value;
+        const d = (this.db.library[c]||[]).find(x => x.cod === document.getElementById('p-sel-disc').value);
+        const horario = document.getElementById('p-horario').value.toUpperCase();
+        const ano = document.getElementById('p-ano').value;
+        const turno = document.getElementById('p-turno').value;
+        const isPP = document.getElementById('p-is-pp').checked;
+
+        if(!d) return;
+
+        // VALIDAÇÕES
+        const sameCode = this.db.classes.filter(x => x.cod === d.cod);
+        if(sameCode.length >= 3) return alert("Limite de 3 turmas para este código de disciplina atingido!");
+
+        const choque = this.db.classes.find(x => x.profId === this.session.user && x.horario === horario && x.ano === ano);
+        if(choque) return alert("Você já possui uma turma vinculada a este horário (" + horario + ") neste período!");
+
+        this.db.classes.push({ 
+            ...d, 
+            id: Date.now(), 
+            ano, 
+            turno,
+            isPP,
+            horario, 
+            profId: this.session.user, 
+            students: [], grades: {}, quizBuffer: {}, freq: {}, cancelamentos: [], topicos: [], quizzes: [], consolidada: false, conselho: [] 
+        });
+        this.save(); this.renderProfTabs();
+    },
+    renderProfTabs() {
+        const turmas = this.db.classes.filter(c => c.profId === this.session.user);
+        document.getElementById('p-class-tabs').innerHTML = turmas.map(t => `<button class="tab-btn ${this.activeT?.id===t.id?'active':''}" onclick="sys.selectTurma(${t.id})">${t.nome} (${t.ano})</button>`).join('');
+    },
+    selectTurma(id) {
+        this.activeT = this.db.classes.find(x => x.id === id);
+        document.getElementById('p-work-area').classList.remove('hidden');
+        document.getElementById('p-active-title').innerHTML = `
+            <div>
+                <span>${this.activeT.nome} [${this.activeT.ano}] - ${this.activeT.horario} (${this.activeT.turno})</span>
+                ${this.activeT.isPP?'<span class="badge-pp">PP</span>':''}
+                ${this.activeT.consolidada?'<span class="badge-cons">CONSOLIDADA</span>':''}
+            </div>
+            <div>
+                ${!this.activeT.consolidada ? `<button class="btn-green" onclick="sys.tglC(${this.activeT.id})">CONSOLIDAR TURMA</button>` : ''}
+            </div>
+        `;
+        this.renderProfTabs(); this.setSub(this.activeS);
+    },
+    setSub(s) {
+        this.activeS = s;
+        document.querySelectorAll('.sub-btn').forEach(b => b.classList.remove('active'));
+        document.getElementById('st-'+s).classList.add('active');
+        this.renderSubView();
+    },
+
+    renderSubView() {
+        const t = this.activeT; let h = "";
+        
+        if(this.activeS === 'notas') {
+            h = `<table><tr><th>Aluno</th><th>B1</th><th>B2</th><th>RS1</th><th>B3</th><th>B4</th><th>RS2</th><th>RF</th><th>Média</th><th>Sit.</th></tr>`;
+            this.db.users.filter(u => u.type === 'aluno' && t.students.includes(u.user)).forEach(s => {
+                const n = t.grades[s.user] || {}; const r = this.calc(n, t, s.user);
+                const dis = t.consolidada || s.status === 'trancado';
+                const i = (f, d) => `<td><input type="number" step="0.1" min="0" max="10" onchange="sys.updGrade(${t.id},'${s.user}','${f}',this.value)" value="${n[f]||''}" ${d?'disabled':''}></td>`;
+                h += `<tr class="${s.status==='trancado'?'aluno-trancado':''}"><td>${s.name}</td>${i('b1',dis)}${i('b2',dis)}${i('rs1',dis||!r.cRS1)}${i('b3',dis)}${i('b4',dis)}${i('rs2',dis||!r.cRS2)}${i('rf',dis||!r.emRF)}<td><b>${r.m}</b></td><td class="${r.sit==='APROVADO NO CONSELHO'?'aprovado':''}">${s.status==='trancado'?'TRANCADO':r.sit}</td></tr>`;
+            });
+            h += `</table><button class="btn-blue" onclick="sys.selectTurma(${t.id}); alert('Cálculos atualizados!')">SALVAR E RECALCULAR</button>`;
+        }
+        else if(this.activeS === 'freq') {
+            const mes = this.activeMes;
+            const numAulas = t.horario ? t.horario.split(/[MTN]/)[1].length : 1;
+            const diaAula = parseInt(t.horario ? t.horario[0] : 0);
+            
+            let diasVisiveis = Array.from({length:31}, (_,i)=>i+1).filter(d => {
+                const dt = new Date(`${mes}-${d.toString().padStart(2,'0')}T12:00:00`);
+                return (dt.getDay() + 1) === diaAula;
+            }).map(d => ({ data: `${mes}-${d.toString().padStart(2,'0')}`, dia: d, extra: false }));
+
+            if(t.topicos) {
+                t.topicos.filter(tp => tp.isExtra && tp.data.startsWith(mes)).forEach(tp => {
+                    if(!diasVisiveis.find(dv => dv.data === tp.data)) {
+                        diasVisiveis.push({ data: tp.data, dia: parseInt(tp.data.split('-')[2]), extra: true });
+                    }
+                });
+            }
+            diasVisiveis.sort((a,b) => a.dia - b.dia);
+
+            h = `<div style="margin-bottom:15px">Mês: <select onchange="sys.activeMes=this.value; sys.renderSubView()">
+                ${["01","02","03","04","05","06","07","08","09","10","11","12"].map(m => `<option value="2026-${m}" ${mes==='2026-'+m?'selected':''}>${m}/2026</option>`).join('')}
+            </select> <small style="margin-left:10px; color:green">* Colunas verdes são Aulas Extras</small></div>`;
+            
+            h += `<div style="overflow-x:auto"><table><tr><th>Aluno</th>${diasVisiveis.map(dv=> {
+                const canc = (t.cancelamentos||[]).includes(dv.data);
+                return `<th class="${canc?'aula-cancelada':(dv.extra?'aula-extra':'')}" onclick="sys.tglCanc(${t.id},'${dv.data}')">${dv.dia}${dv.extra?'*':''}</th>`;
+            }).join('')}</tr>`;
+            
+            this.db.users.filter(u => t.students.includes(u.user)).forEach(s => {
+                h += `<tr><td style="text-align:left">${s.name}</td>${diasVisiveis.map(dv => {
+                    const canc = (t.cancelamentos||[]).includes(dv.data);
+                    const fut = this.isFuturo(dv.data);
+                    const fv = (t.freq[s.user]||{})[dv.data] || 0;
+                    if(s.status==='trancado') return `<td class="aluno-trancado">T</td>`;
+                    if(canc) return `<td class="aula-cancelada">-</td>`;
+                    return `<td class="${fut?'dia-futuro':(fv>0?'tem-falta':'')}" onclick="${(t.consolidada||fut)?'':'sys.updFreqAtData('+t.id+',\''+s.user+'\',\''+dv.data+'\','+numAulas+')'}">${fut?'.':fv}</td>`;
+                }).join('')}</tr>`;
+            });
+            h += `</table></div>`;
+        }
+        else if(this.activeS === 'topicos') {
+            h = `<div style="background:#f9f9f9; padding:15px; border:1px solid #ddd">Data: <input type="date" id="tp-dt"> Título: <input type="text" id="tp-parent" placeholder="Ex: Funções Orgânicas" style="width:25%"> Subtópico: <input type="text" id="tp-sub" placeholder="Ex: Exercícios de Fixação" style="width:25%"> <label><input type="checkbox" id="tp-is-extra"> Aula Extra?</label> <button class="btn-blue" onclick="sys.addTp()">Lançar</button></div><hr>`;
+            t.topicos.forEach(tp => {
+                const dataStr = this.fmtD(tp.data);
+                const infoExtra = tp.isExtra ? ` - aula extra adicional (${dataStr} - ${dataStr})` : ` (${dataStr} - ${dataStr})`;
+                h += `<div class="topic-container"><div class="topic-parent">${tp.parent}${infoExtra}</div><div class="topic-sub">${tp.sub}</div></div>`;
+            });
+        }
+        else if(this.activeS === 'quiz') {
+            h = `<div style="background:#f9f9f9; padding:15px; border:1px solid #ddd"><h4>Nova Questão</h4> Bimestre: <select id="qz-bim"><option value="b1">B1</option><option value="b2">B2</option><option value="b3">B3</option><option value="b4">B4</option></select> Valor: <input type="number" id="qz-v" value="1.0" step="0.1" style="width:50px"><br><br><input id="qz-q" placeholder="Pergunta..." style="width:80%"><br><br>A: <input id="qz-a"> B: <input id="qz-b"> C: <input id="qz-c"> D: <input id="qz-d"><br><br>Correta: <select id="qz-cor"><option value="A">A</option><option value="B">B</option><option value="C">C</option><option value="D">D</option></select> <button class="btn-green" onclick="sys.addQz()">Publicar</button></div><hr>`;
+            h += `<h4>Notas Pendentes</h4><table><tr><th>Aluno</th><th>Bimestre</th><th>Nota</th><th>Ação</th></tr>`;
+            if(t.quizBuffer) { for(let aluId in t.quizBuffer) { for(let bim in t.quizBuffer[aluId]) { const val = t.quizBuffer[aluId][bim]; if(val > 0) { const alu = this.db.users.find(x => x.user === aluId); h += `<tr><td>${alu.name}</td><td>${bim.toUpperCase()}</td><td>${val}</td><td><button class="btn-blue" onclick="sys.approveQuiz('${aluId}','${bim}',${val})">Lançar</button></td></tr>`; } } } }
+            h += `</table><hr>`;
+            (t.quizzes||[]).forEach(q => h += `<div class="quiz-card"><b>[${q.bim.toUpperCase()}]</b> ${q.pergunta} <button class="btn-red" onclick="sys.delQz(${t.id},${q.id})">Remover</button></div>`);
+        }
+        else if(this.activeS === 'mat') {
+            h = `<h4>Matricular Aluno</h4><select id="mat-alu">${this.db.users.filter(u=>u.type==='aluno'&&u.status==='ativo').map(u=>`<option value="${u.user}">${u.name}</option>`)}</select> <button class="btn-blue" onclick="sys.matAlu()">Matricular</button>`;
+        }
+        document.getElementById('p-sub-view').innerHTML = h;
+    },
+
+    calc(n, t, sid) {
+        const p = (v) => (v!==""&&v!==undefined)?parseFloat(v):-1;
+        let b1=p(n.b1), b2=p(n.b2), rs1=p(n.rs1), b3=p(n.b3), b4=p(n.b4), rs2=p(n.rs2), rf=p(n.rf);
+        let m1_base = (b1>=0&&b2>=0)?(b1+b2)/2:0; let m1 = m1_base;
+        if(((b1>=0&&b1<7)||(b2>=0&&b2<7))&&rs1>m1) m1=rs1;
+        let m2_base = (b3>=0&&b4>=0)?(b3+b4)/2:0; let m2 = m2_base;
+        if(((b3>=0&&b3<7)||(b4>=0&&b4<7))&&rs2>m2) m2=rs2;
+        let mf = Math.round(((m1+m2)/2) * 2) / 2;
+        let sit = "CURSANDO", emRF = false;
+        if(b1>=0&&b2>=0&&b3>=0&&b4>=0){
+            if(mf>=6) sit="APROVADO"; 
+            else if(mf>=4){ emRF=true; if(rf>=0){ let f=Math.round(((mf+rf)/2)*2)/2; mf=f; sit=f>=5?"APROVADO":"REPROVADO";} else sit="REC. FINAL";} 
+            else sit="REPROVADO";
+        }
+        if(t.conselho && t.conselho.includes(sid)) sit = "APROVADO NO CONSELHO";
+        return { m: mf.toFixed(2).replace('.',','), sit, emRF, cRS1:m1_base<7, cRS2:m2_base<7 };
+    },
+
+    updGrade(tid, sid, f, v) { let val = parseFloat(v); if(val < 0) val = 0; if(val > 10) val = 10; const t=this.db.classes.find(x=>x.id===tid); if(!t.grades[sid]) t.grades[sid]={}; t.grades[sid][f]=val.toFixed(2); this.save(); },
+    approveQuiz(sid, bim, val) { if(!this.activeT.grades[sid]) this.activeT.grades[sid] = {}; let atual = parseFloat(this.activeT.grades[sid][bim] || 0); let novo = Math.min(10, atual + val); this.activeT.grades[sid][bim] = novo.toFixed(2); this.activeT.quizBuffer[sid][bim] = 0; this.save(); this.renderSubView(); },
+    
+    updFreqAtData(tid, sid, k, max) { 
+        const t=this.db.classes.find(x=>x.id===tid); 
+        if(!t.freq[sid]) t.freq[sid]={}; 
+        let cur=t.freq[sid][k]||0; 
+        t.freq[sid][k]=(cur+1)>max?0:cur+1; 
+        this.save(); this.renderSubView(); 
+    },
+
+    tglCanc(tid, k) { const t=this.db.classes.find(x=>x.id===tid); if(!t.cancelamentos) t.cancelamentos=[]; const i=t.cancelamentos.indexOf(k); if(i>-1) t.cancelamentos.splice(i,1); else t.cancelamentos.push(k); this.save(); this.renderSubView(); },
+    addTp() { const p = document.getElementById('tp-parent').value, s = document.getElementById('tp-sub').value, d = document.getElementById('tp-dt').value, ex = document.getElementById('tp-is-extra').checked; if(!p || !d) return alert("Erro"); this.activeT.topicos.push({ data: d, parent: p.toUpperCase(), sub: s, isExtra: ex }); this.save(); this.renderSubView(); },
+    addQz() { if(!this.activeT.quizzes) this.activeT.quizzes=[]; this.activeT.quizzes.push({ id:Date.now(), bim:document.getElementById('qz-bim').value, val:parseFloat(document.getElementById('qz-v').value), pergunta:document.getElementById('qz-q').value, op:{A:document.getElementById('qz-a').value,B:document.getElementById('qz-b').value,C:document.getElementById('qz-c').value,D:document.getElementById('qz-d').value}, correta:document.getElementById('qz-cor').value, respondidos:[] }); this.save(); this.renderSubView(); },
+    delQz(tid, qid) { const t=this.db.classes.find(x=>x.id===tid); t.quizzes=t.quizzes.filter(x=>x.id!==qid); this.save(); this.renderSubView(); },
+    matAlu() { const v=document.getElementById('mat-alu').value; if(!this.activeT.students.includes(v)) this.activeT.students.push(v); this.save(); this.renderSubView(); },
+
+    renderAluno() {
+        const my = this.db.classes.filter(c => c.students.includes(this.session.user));
+        const anos = [...new Set(my.map(c => c.ano))].sort(); let hB = "";
+        anos.forEach(ano => {
+            hB += `<div class="ano-header">PERÍODO: ${ano}</div><table><tr><th>Disciplina</th><th>B1</th><th>B2</th><th>RS1</th><th>B3</th><th>B4</th><th>RS2</th><th>RF</th><th>Média</th><th>Faltas</th><th>Sit.</th></tr>`;
+            my.filter(c => c.ano === ano).forEach(c => {
+                const n = c.grades[this.session.user]||{}; const r = this.calc(n, c, this.session.user);
+                let ft = 0; if(c.freq[this.session.user]) Object.values(c.freq[this.session.user]).forEach(v => ft += v);
+                const isT = this.session.status === 'trancado';
+                const sCl = isT?'cursando':(c.consolidada?(r.sit.includes('APROVADO')?'aprovado':'reprovado'):'cursando');
+                hB += `<tr class="${isT?'aluno-trancado':''}"><td>${c.nome} ${c.isPP?'(PP)':''}</td><td>${this.fmt(n.b1)}</td><td>${this.fmt(n.b2)}</td><td>${this.fmt(n.rs1,1)}</td><td>${this.fmt(n.b3)}</td><td>${this.fmt(n.b4)}</td><td>${this.fmt(n.rs2,1)}</td><td>${this.fmt(n.rf,1)}</td><td><b>${r.m}</b></td><td>${ft}</td><td class="${sCl}">${isT?'TRANCADO':(c.consolidada?r.sit:'MATRICULADO')}</td></tr>`;
+            });
+            hB += `</table>`;
+        });
+        document.getElementById('a-boletim').innerHTML = hB || "Sem matrículas.";
+        document.getElementById('a-freq-list').innerHTML = my.map(c => {
+            let ft = 0; const list = Object.keys(c.freq[this.session.user]||{}).sort().map(k => { const val = c.freq[this.session.user][k]; ft += val; return `<div class="topic-container" style="padding:5px 10px">${this.fmtD(k)} - <strong>${val} Faltas</strong></div>`; }).join('');
+            return `<div class="turma-header">${c.nome}</div>${list}<div class="resumo-faltas">TOTAL: ${ft}</div>`;
+        }).join('');
+        document.getElementById('a-topicos').innerHTML = my.map(c => `<div class="turma-header">${c.nome}</div>${c.topicos.map(tp => { const d = this.fmtD(tp.data); return `<div class="topic-container"><div class="topic-parent">${tp.parent}${tp.isExtra?' - aula extra adicional ('+d+' - '+d+')':' ('+d+' - '+d+')'}</div><div class="topic-sub">${tp.sub}</div></div>`; }).join('')}`).join('');
+        this.renderAlunoQuiz();
+    },
+    renderAlunoQuiz() {
+        const my = this.db.classes.filter(c => c.students.includes(this.session.user));
+        let h = ""; my.forEach(t => (t.quizzes||[]).forEach(q => { if(!q.respondidos.includes(this.session.user)) h += `<div class="quiz-card"><p><b>${t.nome} - ${q.bim.toUpperCase()}</b></p><p>${q.pergunta}</p><button class="btn-gray" onclick="sys.ansQ(${t.id},${q.id},'A')">A: ${q.op.A}</button> <button class="btn-gray" onclick="sys.ansQ(${t.id},${q.id},'B')">B: ${q.op.B}</button> <button class="btn-gray" onclick="sys.ansQ(${t.id},${q.id},'C')">C: ${q.op.C}</button> <button class="btn-gray" onclick="sys.ansQ(${t.id},${q.id},'D')">D: ${q.op.D}</button></div>`; }));
+        document.getElementById('r-a-quiz').innerHTML = h || "Nada pendente.";
+    },
+    ansQ(tid, qid, res) {
+        const t=this.db.classes.find(x=>x.id===tid); const q=t.quizzes.find(x=>x.id===qid);
+        if(!t.quizBuffer) t.quizBuffer = {}; if(!t.quizBuffer[this.session.user]) t.quizBuffer[this.session.user] = {};
+        if(q.correta === res) { t.quizBuffer[this.session.user][q.bim] = (parseFloat(t.quizBuffer[this.session.user][q.bim] || 0) + q.val).toFixed(2); alert("Correto! Aguarde lançamento."); } else alert("Errado!");
+        q.respondidos.push(this.session.user); this.save(); this.renderAluno();
+    },
+
+    renderGestao() {
+        let hM = ""; for(let c in this.db.library) hM += `<h4>${c}</h4><table>${(this.db.library[c]||[]).map(d => `<tr><td style="text-align:left">${d.nome} (${d.cod})</td><td><button class="btn-red" onclick="sys.delD('${c}','${d.cod}')">Excluir</button></td></tr>`).join('')}</table>`;
+        document.getElementById('render-g-matriz').innerHTML = hM;
+        
+        let hT = this.db.classes.map(c => {
+            const aluReprovados = this.db.users.filter(u => u.type === 'aluno' && c.students.includes(u.user)).map(u => {
+                const res = this.calc(c.grades[u.user] || {}, c, u.user);
+                return { sid: u.user, name: u.name, sit: res.sit };
+            }).filter(x => x.sit !== "APROVADO" && x.sit !== "APROVADO NO CONSELHO" && x.sit !== "CURSANDO" && x.sit !== "TRANCADO");
+
+            let listRep = aluReprovados.map(r => `
+                <div style="font-size:10px; border-top:1px solid #eee; padding:5px; display:flex; justify-content:space-between; align-items:center">
+                    <span>${r.name} (${r.sit})</span>
+                    <button class="btn-orange" style="font-size:9px" onclick="sys.aprovarConselho(${c.id},'${r.sid}')">Aprovar Conselho</button>
+                </div>
+            `).join('');
+
+            return `<div style="background:#fff; padding:10px; border:1px solid #ccc; margin-bottom:15px">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px">
+                    <strong>${c.ano} - ${c.nome} (${c.turno}) ${c.isPP?'[PP]':''}</strong>
+                    <button class="${c.consolidada?'btn-blue':'btn-green'}" onclick="sys.tglC(${c.id})">${c.consolidada?'ABRIR (DESCONSOLIDAR)':'CONSOLIDAR'}</button>
+                </div>
+                ${listRep ? '<div><small><strong>Pendentes Conselho:</strong></small>'+listRep+'</div>' : ''}
+            </div>`;
+        }).join('');
+        document.getElementById('render-g-turmas').innerHTML = hT;
+        this.renderGestaoAlunos();
+    },
+
+    aprovarConselho(tid, sid) {
+        if(!confirm("Deseja aprovar este aluno via conselho de classe?")) return;
+        const t = this.db.classes.find(x => x.id === tid);
+        if(!t.conselho) t.conselho = [];
+        if(!t.conselho.includes(sid)) t.conselho.push(sid);
+        this.save(); this.renderGestao();
+    },
+
+    gestaoAddAluno() {
+        const u = { name: document.getElementById('ga-name').value.toUpperCase(), user: document.getElementById('ga-user').value, pass: "123", type: 'aluno', status: 'ativo' };
+        if(this.db.users.find(x => x.user === u.user)) return alert("Já existe!");
+        this.db.users.push(u); this.save(); this.renderGestaoAlunos();
+    },
+    updAluSt(uid, st) { const u = this.db.users.find(x => x.user === uid); if(st === 'excluir') { if(confirm("Certeza?")) this.db.users = this.db.users.filter(x => x.user !== uid); } else u.status = st; this.save(); this.renderGestaoAlunos(); },
+    renderGestaoAlunos() {
+        const alus = this.db.users.filter(u => u.type === 'aluno');
+        document.getElementById('render-g-alunos').innerHTML = `<table><tr><th>Nome</th><th>Matrícula</th><th>Status</th><th>Ações</th></tr>${alus.map(a => `<tr><td style="text-align:left">${a.name}</td><td>${a.user}</td><td>${a.status.toUpperCase()}</td><td><button class="btn-orange" onclick="sys.updAluSt('${a.user}','trancado')">Trancar</button> <button class="btn-blue" onclick="sys.updAluSt('${a.user}','ativo')">Ativar</button> <button class="btn-red" onclick="sys.updAluSt('${a.user}','excluir')">Excluir</button></td></tr>`).join('')}</table>`;
+    },
+    delD(c, cod) { this.db.library[c]=this.db.library[c].filter(x=>x.cod!==cod); this.save(); this.renderGestao(); },
+    
+    tglC(id) { 
+        const c = this.db.classes.find(x => x.id === id);
+        // Se a turma já está consolidada, apenas a gestão pode abrir
+        if(c.consolidada && this.session.type !== 'gestao') {
+            return alert("Apenas a gestão pode desconsolidar uma turma!");
+        }
+        c.consolidada = !c.consolidada; 
+        this.save(); 
+        if(this.session.type === 'gestao') this.renderGestao();
+        else this.selectTurma(id);
+    },
+    
+    addDisc() { this.db.library[document.getElementById('g-course').value].push({nome:document.getElementById('g-name').value.toUpperCase(), cod:document.getElementById('g-code').value.toUpperCase()}); this.save(); this.renderGestao(); },
+    deleteAllClasses() { if(confirm("Apagar TUDO?")) { this.db.classes = []; this.save(); this.renderGestao(); } },
+
+    switchTab(id, btn) {
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'));
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.getElementById(id).classList.remove('hidden'); btn.classList.add('active');
+        if(id==='a-boletim') this.renderAluno();
+        if(id==='g-alunos') this.renderGestaoAlunos();
+        if(id==='g-consolidar') this.renderGestao();
+    }
+};
+</script>
+</body>
+</html>

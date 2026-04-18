@@ -3,9 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <title>SIGAA IFAL - v30 ERP Personalizado</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
     <style>
         :root { --ifal-blue: #004a8d; --ifal-green: #28a745; --border: #ccc; }
-        body { font-family: Arial, sans-serif; margin: 0; background: #f4f4f4; font-size: 11px; }
+        body { font-family: Verdana, sans-serif; margin: 0; background: #f4f4f4; font-size: 11px; }
         .hidden { display: none !important; }
         header { background: #fff; border-bottom: 2px solid var(--ifal-blue); padding: 10px 20px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
         .container { padding: 20px; max-width: 1500px; margin: auto; }
@@ -19,13 +23,16 @@
         .sub-btn.active { background: #fff; border: 1px solid #999; border-bottom: 1px solid #fff; margin-bottom: -1px; color: var(--ifal-blue); }
 
         table { width: 100%; border-collapse: collapse; background: #fff; margin-bottom: 20px; }
-        th { background: #f0f0f0; color: #333; padding: 8px; border: 1px solid var(--border); font-weight: bold; text-transform: uppercase; }
+        th { background: #f0f0f0; color: #333; padding: 8px; border: 1px solid var(--border); font-weight: bold; text-transform: uppercase; position: relative; }
         td { border: 1px solid var(--border); padding: 5px; text-align: center; height: 28px; }
         .turma-header { background: #444; color: white; text-align: left; padding: 10px; font-weight: bold; display: flex; justify-content: space-between; align-items: center; }
         .badge-cons { background: #ffc107; color: #000; padding: 2px 6px; border-radius: 4px; font-size: 9px; margin-left: 10px; }
         .badge-pp { background: #d32f2f; color: #fff; padding: 2px 6px; border-radius: 4px; font-size: 9px; margin-left: 5px; }
         
-        input[type=number] { border: 1px solid #999; padding: 8px; background: #fff; text-align: center; width: 45px; }
+        input[type=number], input[type=text], input[type=password], input[type=email], select, input[type=date] { border: 1px solid #999; padding: 8px; background: #fff; }
+        input[type=number] { text-align: center; width: 45px; -moz-appearance: textfield; }
+        input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+        
         input:disabled { background: #eeeeee !important; color: #777 !important; cursor: not-allowed; border: 1px solid #ddd; }
         
         .btn-blue { background: var(--ifal-blue); color: white; border: none; padding: 10px 20px; cursor: pointer; font-weight: bold; }
@@ -44,21 +51,62 @@
         .topic-container { background: #fff; border-bottom: 1px solid #ccc; padding: 15px 10px; text-align: left; }
         .topic-parent { font-size: 13px; color: #333; font-weight: normal; margin-bottom: 5px; }
         .topic-sub { color: #666; font-size: 11px; padding-left: 20px; margin-top: 4px; display: flex; align-items: center; }
-        .topic-sub::before { content: " "; margin-right: 8px; font-size: 10px; }
         .resumo-faltas { background: #f8f9fa; padding: 10px; text-align: right; font-weight: bold; border: 1px solid #ddd; border-top: none; margin-bottom: 20px; font-size: 13px; }
         .ano-header { background: #004a8d; color: white; padding: 10px; margin-top: 20px; font-size: 14px; border-radius: 4px 4px 0 0; }
+        
+        .btn-pdf { background: #1a7f37; color: #fff; padding: 4px 8px; border-radius: 12px; text-decoration: none; font-size: 10px; margin-left: 10px; font-weight: bold; display: inline-flex; align-items: center; }
+        .pdf-subtopic { color: #555; font-size: 10px; font-style: italic; margin-top: 5px; padding-left: 20px; display: block; }
+        .sigaa-x { color: #28a745; cursor: pointer; font-size: 14px; margin-left: 5px; }
+
+        .perfil-foto-circulo { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; border: 2px solid var(--ifal-blue); vertical-align: middle; margin-right: 10px; }
+        .perfil-card { background: white; padding: 30px; border: 1px solid #ccc; max-width: 800px; margin: 20px auto; text-align: center; }
+        .foto-grande { width: 120px; height: 120px; border-radius: 50%; object-fit: cover; border: 3px solid var(--ifal-blue); margin-bottom: 15px; }
+
+        .grid-participantes { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px; margin-top: 15px; }
+        .card-participante { background: #fff; border: 1px solid #ddd; padding: 15px; text-align: center; border-radius: 4px; }
+        .card-participante.clickable { cursor: pointer; transition: 0.2s; }
+        .card-participante.clickable:hover { border-color: var(--ifal-blue); box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        .card-participante img { width: 60px; height: 60px; border-radius: 50%; object-fit: cover; margin-bottom: 10px; border: 2px solid var(--ifal-blue); }
+        .card-participante .nome { font-weight: bold; display: block; margin-bottom: 5px; font-size: 12px; }
+        .card-participante .curso { font-size: 9px; color: #666; text-transform: uppercase; }
+
+        .folder-curso { background: #e9ecef; border-left: 5px solid var(--ifal-blue); padding: 10px; margin-top: 20px; font-weight: bold; color: var(--ifal-blue); font-size: 14px; display: flex; justify-content: space-between; align-items: center; }
+        
+        .historico-container { background: #fff; padding: 40px; border: 1px solid #333; margin-top: 20px; font-family: 'Courier New', Courier, monospace; }
+        .historico-header { text-align: center; border-bottom: 2px solid #000; margin-bottom: 20px; padding-bottom: 10px; }
+        .mass-enroll-box { background: #f9f9f9; border: 1px solid #ddd; padding: 10px; max-height: 200px; overflow-y: auto; margin-bottom: 10px; }
+        .concluido { color: #1a7f37; font-weight: bold; }
+
+        /* Estilos para o Modal de Perfil do Professor */
+        .modal-prof { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1000; }
+        .modal-prof-content { background: white; padding: 20px; width: 90%; max-width: 600px; max-height: 80%; overflow-y: auto; border-radius: 5px; position: relative; }
+        .close-modal { position: absolute; top: 10px; right: 15px; font-size: 20px; cursor: pointer; font-weight: bold; }
+        
+        /* Novas Classes */
+        .pit-box { border: 1px solid #ccc; padding: 15px; margin-top: 20px; background: #fff; text-align: left; }
+        .prazo-expirado { color: #d32f2f; font-weight: bold; font-size: 9px; }
     </style>
 </head>
 <body>
 
 <header id="main-header" class="hidden">
     <div><strong>SIGAA - IFAL | <span id="role-display"></span></strong></div>
-    <div>
+    <div style="display: flex; align-items: center;">
         <button class="btn-gray" onclick="sys.start()">← Início</button>
-        <span id="display-user" style="margin: 0 15px; font-weight: bold;"></span>
+        <div onclick="sys.abrirPerfil()" style="cursor:pointer; margin: 0 15px; display: flex; align-items: center;">
+            <img id="header-foto" src="" class="perfil-foto-circulo">
+            <span id="display-user" style="font-weight: bold;"></span>
+        </div>
         <button class="btn-gray" onclick="location.reload()">Sair</button>
     </div>
 </header>
+
+<div id="modal-perfil-prof" class="modal-prof hidden">
+    <div class="modal-prof-content">
+        <span class="close-modal" onclick="document.getElementById('modal-perfil-prof').classList.add('hidden')">&times;</span>
+        <div id="modal-prof-body"></div>
+    </div>
+</div>
 
 <div id="screen-auth" class="container">
     <div style="width:380px; margin: 60px auto; background:#fff; padding:30px; border:1px solid #ccc; text-align:center;">
@@ -73,11 +121,13 @@
             <input type="text" id="r-name" placeholder="Nome Completo" style="width:90%; margin-bottom:8px">
             <input type="text" id="r-user" placeholder="Matrícula" style="width:90%; margin-bottom:8px">
             <input type="password" id="r-pass" placeholder="Senha" style="width:90%; margin-bottom:8px">
-            <select id="r-type" style="width:90%; margin-bottom:15px">
+            <select id="r-type" style="width:90%; margin-bottom:8px">
                 <option value="aluno">Aluno</option>
                 <option value="professor">Professor</option>
                 <option value="gestao">Gestão</option>
             </select>
+            <select id="r-curso" style="width:90%; margin-bottom:15px" class="select-cursos-global">
+                </select>
             <button class="btn-green" style="width:95%" onclick="sys.register()">CADASTRAR</button>
             <p><a href="#" onclick="sys.toggleAuth(false)">Voltar</a></p>
         </div>
@@ -87,44 +137,77 @@
 <div id="screen-gestao" class="container hidden">
     <div class="tab-bar">
         <button class="tab-btn active" onclick="sys.switchTab('g-matriz', this)">Matriz Curricular</button>
-        <button class="tab-btn" onclick="sys.switchTab('g-consolidar', this)">Consolidação</button>
+        <button class="tab-btn" onclick="sys.switchTab('g-consolidar', this)">Consolidação e Turmas</button>
         <button class="tab-btn" onclick="sys.switchTab('g-alunos', this)">Gestão de Alunos</button>
     </div>
     <div id="g-matriz" class="tab-content">
         <div style="background:#fff; padding:20px; border:1px solid #ccc; margin-bottom:20px">
-            <select id="g-course"><option value="AGROPE">AGROPE</option><option value="AGROIND">AGROIND</option><option value="SUPERIOR">SUPERIOR</option></select>
-            <input type="text" id="g-name" placeholder="Nome Disciplina">
+            <select id="g-course" class="select-cursos-global">
+                </select>
+            <input type="text" id="g-name" placeholder="Nome da Disciplina" style="width:300px">
             <input type="text" id="g-code" placeholder="Código">
-            <button class="btn-green" onclick="sys.addDisc()">Adicionar</button>
+            <button class="btn-green" onclick="sys.addDisc()">Adicionar à Matriz</button>
+        </div>
+        <div id="area-notas-pasta" class="hidden" style="background:#fff; padding:20px; border:2px solid var(--ifal-blue); margin-bottom:20px">
+            <div style="display:flex; justify-content:space-between">
+                <h3 id="titulo-pasta-notas">Notas da Pasta</h3>
+                <button class="btn-red" onclick="document.getElementById('area-notas-pasta').classList.add('hidden')">FECHAR PASTA</button>
+            </div>
+            <div id="render-notas-pasta" style="overflow-x:auto"></div>
         </div>
         <div id="render-g-matriz"></div>
     </div>
     <div id="g-consolidar" class="tab-content hidden">
+        <div style="background:#fff; padding:20px; border:1px solid #ccc; margin-bottom:20px">
+            <h4>Criar Nova Turma (Gestão)</h4>
+            <select id="p-sel-course" onchange="sys.updDisc()" class="select-cursos-global"></select>
+            <select id="p-sel-disc"></select>
+            <select id="p-sel-prof" style="width:200px"></select>
+            <select id="p-ano"><option value="2026.1">2026.1</option><option value="2026.2">2026.2</option></select>
+            <select id="p-turno"><option value="MATUTINO">Matutino</option><option value="VESPERTINO">Vespertino</option><option value="NOTURNO">Noturno</option></select>
+            <input type="text" id="p-horario" placeholder="Ex: 2M123" style="width:80px">
+            <input type="number" id="p-ch" placeholder="CH (ex: 60h)" style="width:60px">
+            <label>Limite Notas: <input type="date" id="p-prazo"></label>
+            <label style="margin-left: 10px;"><input type="checkbox" id="p-is-pp"> Turma PP</label>
+            <button class="btn-blue" onclick="sys.createClass()">Criar Turma</button>
+        </div>
         <button class="btn-red" style="margin-bottom:15px" onclick="sys.deleteAllClasses()">EXCLUIR TODAS AS TURMAS</button>
         <div id="render-g-turmas"></div>
     </div>
     <div id="g-alunos" class="tab-content hidden">
-        <div style="background:#fff; padding:20px; border:1px solid #ccc; margin-bottom:20px">
-            <h4>Pré-cadastrar Aluno</h4>
-            <input type="text" id="ga-name" placeholder="Nome do Aluno" style="width:30%">
-            <input type="text" id="ga-user" placeholder="Matrícula">
-            <button class="btn-green" onclick="sys.gestaoAddAluno()">Cadastrar Aluno</button>
+        <div style="background:#fff; padding:20px; border:1px solid #ccc; margin-bottom:20px; display: flex; justify-content: space-between; align-items: flex-start;">
+            <div style="width: 50%;">
+                <h4 id="ga-form-title">Pré-cadastrar Aluno</h4>
+                <input type="hidden" id="ga-editing-id">
+                <input type="text" id="ga-name" placeholder="Nome do Aluno" style="width:30%">
+                <input type="text" id="ga-user" placeholder="Matrícula">
+                <select id="ga-curso" class="select-cursos-global"></select>
+                <input type="text" id="ga-serie" placeholder="Ano/Série">
+                <input type="text" id="ga-turma" placeholder="Turma">
+                <button class="btn-green" id="ga-btn-save" onclick="sys.gestaoAddAluno()">Cadastrar Aluno</button>
+                <button class="btn-gray hidden" id="ga-btn-cancel" onclick="sys.clearAluForm()">Cancelar Edição</button>
+            </div>
+            <div style="width: 45%; border-left: 1px solid #ccc; padding-left: 20px;">
+                <h4>Importar Lista (Planilha ou PDF)</h4>
+                <select id="ga-import-curso" class="select-cursos-global" style="width: 100%; margin-bottom: 10px;"></select>
+                <input type="file" id="ga-file-import" accept=".xlsx, .xls, .csv, .pdf" style="font-size: 10px;">
+                <div style="display: flex; gap: 5px; margin-top: 10px;">
+                    <button class="btn-blue" onclick="sys.importarPlanilha()" style="flex: 1;">IMPORTAR EXCEL</button>
+                    <button class="btn-orange" onclick="sys.importarPDF()" style="flex: 1;">IMPORTAR PDF</button>
+                </div>
+                <p style="font-size: 9px; color: #666; margin-top: 5px;">* Planilha: Nome e Matricula. PDF: Formato padrão SIGAA.</p>
+            </div>
         </div>
         <div id="render-g-alunos"></div>
     </div>
 </div>
 
 <div id="screen-prof" class="container hidden">
-    <div style="background:#fff; padding:15px; border:1px solid #ccc; margin-bottom:15px">
-        <select id="p-sel-course" onchange="sys.updDisc()"></select>
-        <select id="p-sel-disc"></select>
-        <select id="p-ano"><option value="2026.1">2026.1</option><option value="2026.2">2026.2</option></select>
-        <select id="p-turno"><option value="MATUTINO">Matutino</option><option value="VESPERTINO">Vespertino</option><option value="NOTURNO">Noturno</option></select>
-        <input type="text" id="p-horario" placeholder="Ex: 2M123" style="width:80px">
-        <label style="margin-left: 10px;"><input type="checkbox" id="p-is-pp"> Turma PP</label>
-        <button class="btn-blue" onclick="sys.createClass()">Criar Turma</button>
+    <div class="tab-bar">
+        <button id="tab-prof-ativas" class="tab-btn active" onclick="sys.switchProfTab('ativas')">Turmas Atuais</button>
+        <button id="tab-prof-anteriores" class="tab-btn" onclick="sys.switchProfTab('anteriores')">Turmas Anteriores</button>
     </div>
-    <div id="p-class-tabs" class="tab-bar"></div>
+    <div id="p-class-tabs" class="tab-bar" style="background:#eee"></div>
     <div id="p-work-area" class="hidden" style="background:#fff; border:1px solid #ccc; padding:15px">
         <div id="p-active-title" class="turma-header"></div>
         <div class="sub-tab-bar">
@@ -132,7 +215,8 @@
             <button class="sub-btn" id="st-freq" onclick="sys.setSub('freq')">FREQUÊNCIA</button>
             <button class="sub-btn" id="st-topicos" onclick="sys.setSub('topicos')">LANÇAR TÓPICOS</button>
             <button class="sub-btn" id="st-quiz" onclick="sys.setSub('quiz')">AVALIAÇÕES ONLINE</button>
-            <button class="sub-btn" id="st-mat" onclick="sys.setSub('mat')">MATRICULAR ALUNO</button>
+            <button class="sub-btn" id="st-mat" onclick="sys.setSub('mat')">LANÇAR ALUNO</button>
+            <button class="sub-btn" id="st-parts" onclick="sys.setSub('parts')">PARTICIPANTES</button>
         </div>
         <div id="p-sub-view"></div>
     </div>
@@ -144,23 +228,114 @@
         <button class="tab-btn" onclick="sys.switchTab('a-freq-list', this)">Minha Frequência</button>
         <button class="tab-btn" onclick="sys.switchTab('a-quiz', this)">Avaliações Online</button>
         <button class="tab-btn" onclick="sys.switchTab('a-topicos', this)">Tópicos de Aula</button>
+        <button class="tab-btn" onclick="sys.switchTab('a-parts', this)">Participantes</button>
+        <button class="tab-btn" onclick="sys.switchTab('a-historico', this)">Meu Histórico</button>
     </div>
     <div id="a-boletim" class="tab-content"></div>
     <div id="a-freq-list" class="tab-content hidden"></div>
     <div id="a-quiz" class="tab-content hidden"><div id="r-a-quiz"></div></div>
     <div id="a-topicos" class="tab-content hidden"></div>
+    <div id="a-parts" class="tab-content hidden"></div>
+    <div id="a-historico" class="tab-content hidden"></div>
+</div>
+
+<div id="screen-perfil" class="container hidden">
+    <div class="perfil-card">
+        <img id="perfil-foto-view" src="" class="foto-grande">
+        <h3>Meus Dados Acadêmicos</h3>
+        <p><strong>Login/Matrícula:</strong> <span id="perfil-login-view"></span></p>
+        <p><strong>Curso:</strong> <span id="perfil-curso-view"></span></p>
+        <p><strong>Status:</strong> <span id="perfil-status-view"></span></p>
+
+        <div id="area-prof-extra" class="hidden">
+            <hr>
+            <h4>Histórico de Atividades (Carga Horária e Turmas)</h4>
+            <div id="render-hist-prof"></div>
+            
+            <div class="pit-box">
+                <h4>PLANO INDIVIDUAL DE TRABALHO (PIT)</h4>
+                <textarea id="pit-text" style="width:100%; height:100px; padding:10px" placeholder="Descreva suas atividades de Ensino, Pesquisa, Extensão e Gestão..."></textarea>
+                <button class="btn-blue" style="margin-top:10px" onclick="sys.salvarPIT()">SALVAR PIT</button>
+            </div>
+        </div>
+        
+        <div style="text-align:left; margin-top:20px; border: 1px solid #ddd; padding: 15px;">
+            <h4>Configurações de Conta</h4>
+            <label>Alterar Foto:</label><br>
+            <input type="file" id="perfil-input-foto" accept="image/*" onchange="sys.perfilUploadFoto(this)" style="width:100%; margin-bottom:15px"><br>
+            
+            <label>E-mail:</label><br>
+            <input type="email" id="perfil-email" style="width:95%; margin-bottom:15px"><br>
+            
+            <label>Nova Senha:</label><br>
+            <input type="password" id="perfil-pass" placeholder="Deixe em branco para não alterar" style="width:95%; margin-bottom:20px">
+            
+            <button class="btn-green" style="width:100%" onclick="sys.perfilSalvar()">SALVAR ALTERAÇÕES</button>
+        </div>
+    </div>
 </div>
 
 <script>
+const LISTA_CURSOS_EXPANDIDA = [
+    "BIOTECNOLOGIA 113 - C/BAT",
+    "BIOTECNOLOGIA 112 - C/BAT",
+    "BIOTECNOLOGIA 111 - C/BAT",
+    "AGROPECUÁRIA 323 - C/BAT",
+    "AGROINDÚSTRIA 521 - C/BAT",
+    "AGROINDÚSTRIA 522 - C/BAT",
+    "AGROINDUSTRIA 523 - C/BAT",
+    "AGROINDÚSTRIA 513 - C/BAT",
+    "AGROINDÚSTRIA 512 - C/BAT",
+    "AGROINDUSTRIA 511 - C/BAT",
+    "SUPERIOR 2026.1 - C/BAT",
+    "AGROPECUÁRIA 321 - C/BAT",
+    "AGROPECUÁRIA 322 - C/BAT",
+    "SUBSEQUENTE EM AGROINDÚSTRIA - C/BAT",
+    "TÉCNICO INTEGRADO AO ENSINO MÉDIO EM AGROINDÚSTRIA - C/BAT",
+    "TÉCNICO INTEGRADO AO ENSINO MÉDIO EM BIOTECNOLOGIA - C/BAT",
+    "TÉCNICO INTEGRADO AO ENSINO MÉDIO EM AGROPECUÁRIA - C/BAT",
+    "TÉCNICO INTEGRADO AO ENSINO MÉDIO EM TECNOLOGIA DA INFORMAÇÃO - C/BAT",
+    "TURMA GRADUAÇÃO 2026.1 - C/BAT",
+    "SUBSEQUENTE EM AGROINDÚSTRIA - C/BAT",
+    "CURSO SUPERIOR EM AGROINDÚSTRIA - C/BAT"
+];
+
 const sys = {
-    db: JSON.parse(localStorage.getItem('ifal_v30')) || { users: [], classes: [], library: { AGROPE: [], AGROIND: [], SUPERIOR: [] } },
+    db: JSON.parse(localStorage.getItem('ifal_v30')) || { 
+        users: [], 
+        classes: [], 
+        library: {} 
+    },
     session: null,
     activeT: null,
     activeS: 'notas',
+    activeProfTab: 'ativas',
     activeMes: new Date().toISOString().slice(0,7),
 
+    initLibrary() {
+        LISTA_CURSOS_EXPANDIDA.forEach(c => {
+            if (!this.db.library[c]) this.db.library[c] = [];
+        });
+        this.save();
+    },
+
+    populaSelectsCursos() {
+        const html = LISTA_CURSOS_EXPANDIDA.map(c => `<option value="${c}">${c}</option>`).join('');
+        document.querySelectorAll('.select-cursos-global').forEach(sel => {
+            sel.innerHTML = html;
+        });
+    },
+
     save() { localStorage.setItem('ifal_v30', JSON.stringify(this.db)); },
-    fmt(v, isRec) { if(v===undefined||v===""||v===null) return isRec?"--":"0,00"; return parseFloat(v).toFixed(2).replace('.', ','); },
+    
+    fmt(v, type) { 
+        if(v===undefined||v===""||v===null||isNaN(v)) {
+            if(type === 'rec') return "--";
+            return "S/N"; 
+        }
+        return parseFloat(v).toFixed(2).replace('.', ','); 
+    },
+    
     fmtD(d) { if(!d) return ""; const p = d.split('-'); return `${p[2]}/${p[1]}/${p[0]}`; },
     isFuturo(k) { return new Date(k + "T23:59:59") > new Date(); },
     toggleAuth(r) { document.getElementById('login-form').classList.toggle('hidden', r); document.getElementById('reg-form').classList.toggle('hidden', !r); },
@@ -170,72 +345,181 @@ const sys = {
         if(u) { this.session = u; this.start(); } else alert("Erro!");
     },
     register() {
-        const u = { name: document.getElementById('r-name').value.toUpperCase(), user: document.getElementById('r-user').value, pass: document.getElementById('r-pass').value, type: document.getElementById('r-type').value, status: 'ativo' };
+        const u = { 
+            name: document.getElementById('r-name').value.toUpperCase(), 
+            user: document.getElementById('r-user').value, 
+            pass: document.getElementById('r-pass').value, 
+            type: document.getElementById('r-type').value, 
+            curso: document.getElementById('r-curso').value,
+            status: 'ativo', serie: '', turma: '', 
+            email: '', 
+            pit: '',
+            foto: 'https://cdn-icons-png.flaticon.com/512/149/149071.png' 
+        };
         this.db.users.push(u); this.save(); this.toggleAuth(false);
     },
 
     start() {
-        ['screen-auth', 'screen-gestao', 'screen-prof', 'screen-aluno'].forEach(s => document.getElementById(s).classList.add('hidden'));
+        this.initLibrary();
+        this.populaSelectsCursos();
+        ['screen-auth', 'screen-gestao', 'screen-prof', 'screen-aluno', 'screen-perfil'].forEach(s => document.getElementById(s).classList.add('hidden'));
         document.getElementById('main-header').classList.remove('hidden');
         document.getElementById('display-user').innerText = this.session.name;
         document.getElementById('role-display').innerText = this.session.type.toUpperCase();
+        
+        document.getElementById('header-foto').src = this.session.foto || 'https://cdn-icons-png.flaticon.com/512/149/149071.png';
+
         if(this.session.type === 'gestao') { document.getElementById('screen-gestao').classList.remove('hidden'); this.renderGestao(); }
         else if(this.session.type === 'professor') { document.getElementById('screen-prof').classList.remove('hidden'); this.initProf(); }
         else { document.getElementById('screen-aluno').classList.remove('hidden'); this.renderAluno(); }
     },
 
+    abrirPerfil() {
+        ['screen-gestao', 'screen-prof', 'screen-aluno'].forEach(s => document.getElementById(s).classList.add('hidden'));
+        document.getElementById('screen-perfil').classList.remove('hidden');
+        document.getElementById('perfil-foto-view').src = this.session.foto || 'https://cdn-icons-png.flaticon.com/512/149/149071.png';
+        document.getElementById('perfil-login-view').innerText = this.session.user;
+        document.getElementById('perfil-curso-view').innerText = this.session.curso || "NÃO INFORMADO";
+        document.getElementById('perfil-status-view').innerText = (this.session.status || "Ativo").toUpperCase();
+        document.getElementById('perfil-email').value = this.session.email || '';
+        document.getElementById('perfil-pass').value = '';
+
+        // Exibe PIT e Histórico se for professor
+        if(this.session.type === 'professor') {
+            document.getElementById('area-prof-extra').classList.remove('hidden');
+            document.getElementById('pit-text').value = this.session.pit || '';
+            this.renderHistoricoProfNoPerfil(this.session.user);
+        } else {
+            document.getElementById('area-prof-extra').classList.add('hidden');
+        }
+    },
+
+    renderHistoricoProfNoPerfil(profId) {
+        const turmas = this.db.classes.filter(t => t.profId === profId);
+        let h = `<table><tr><th>Disciplina</th><th>Turma/Ano</th><th>CH</th><th>Horário</th></tr>`;
+        turmas.forEach(t => {
+            h += `<tr><td>${t.nome}</td><td>${t.ano}</td><td>${t.ch || '--'}h</td><td>${t.horario || '--'}</td></tr>`;
+        });
+        h += `</table>`;
+        document.getElementById('render-hist-prof').innerHTML = h;
+    },
+
+    salvarPIT() {
+        const pit = document.getElementById('pit-text').value;
+        const u = this.db.users.find(x => x.user === this.session.user);
+        u.pit = pit;
+        this.session.pit = pit;
+        this.save();
+        alert("Plano Individual de Trabalho (PIT) salvo com sucesso!");
+    },
+
+    perfilUploadFoto(input) {
+        if (input.files && input.files[0]) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                this.session.foto = e.target.result;
+                document.getElementById('perfil-foto-view').src = e.target.result;
+                document.getElementById('header-foto').src = e.target.result;
+            };
+            reader.readAsDataURL(input.files[0]);
+        }
+    },
+
+    perfilSalvar() {
+        const u = this.db.users.find(x => x.user === this.session.user);
+        u.email = document.getElementById('perfil-email').value;
+        u.foto = this.session.foto;
+        const novaSenha = document.getElementById('perfil-pass').value;
+        if(novaSenha) u.pass = novaSenha;
+        
+        this.save();
+        alert("Perfil atualizado com sucesso!");
+        this.start();
+    },
+
     initProf() {
-        document.getElementById('p-sel-course').innerHTML = Object.keys(this.db.library).map(c => `<option value="${c}">${c}</option>`).join('');
-        this.updDisc(); this.renderProfTabs();
+        this.renderProfTabs();
     },
     updDisc() {
         const c = document.getElementById('p-sel-course').value;
-        document.getElementById('p-sel-disc').innerHTML = (this.db.library[c]||[]).map(d => `<option value="${d.cod}">${d.nome}</option>`).join('');
+        const dics = (this.db.library[c]||[]).sort((a,b) => a.nome.localeCompare(b.nome));
+        document.getElementById('p-sel-disc').innerHTML = dics.map(d => `<option value="${d.cod}">${d.nome}</option>`).join('');
     },
     createClass() {
         const c = document.getElementById('p-sel-course').value;
         const d = (this.db.library[c]||[]).find(x => x.cod === document.getElementById('p-sel-disc').value);
+        const profId = document.getElementById('p-sel-prof').value;
         const horario = document.getElementById('p-horario').value.toUpperCase();
         const ano = document.getElementById('p-ano').value;
         const turno = document.getElementById('p-turno').value;
         const isPP = document.getElementById('p-is-pp').checked;
+        const ch = document.getElementById('p-ch').value;
+        const prazo = document.getElementById('p-prazo').value;
 
-        if(!d) return;
+        if(!d) return alert("Selecione uma disciplina!");
+        if(!profId) return alert("Selecione um professor!");
+        if(!prazo) return alert("Defina o prazo limite para notas!");
 
-        // VALIDAÇÕES
         const sameCode = this.db.classes.filter(x => x.cod === d.cod);
-        if(sameCode.length >= 3) return alert("Limite de 3 turmas para este código de disciplina atingido!");
+        if(sameCode.length >= 10) return alert("Limite de turmas para este código atingido!");
 
-        const choque = this.db.classes.find(x => x.profId === this.session.user && x.horario === horario && x.ano === ano);
-        if(choque) return alert("Você já possui uma turma vinculada a este horário (" + horario + ") neste período!");
+        const choque = this.db.classes.find(x => x.profId === profId && x.horario === horario && x.ano === ano);
+        if(choque) return alert("O professor já possui uma turma vinculada a este horário neste período!");
 
         this.db.classes.push({ 
             ...d, 
             id: Date.now(), 
             ano, 
             turno,
+            ch,
+            prazoNotas: prazo,
             isPP,
             horario, 
-            profId: this.session.user, 
+            cursoOrigem: c,
+            profId: profId, 
             students: [], grades: {}, quizBuffer: {}, freq: {}, cancelamentos: [], topicos: [], quizzes: [], consolidada: false, conselho: [] 
         });
-        this.save(); this.renderProfTabs();
+        this.save(); this.renderGestao(); alert("Turma criada com sucesso!");
     },
+
+    switchProfTab(tab) {
+        this.activeProfTab = tab;
+        document.getElementById('tab-prof-ativas').classList.toggle('active', tab === 'ativas');
+        document.getElementById('tab-prof-anteriores').classList.toggle('active', tab === 'anteriores');
+        this.activeT = null;
+        document.getElementById('p-work-area').classList.add('hidden');
+        this.renderProfTabs();
+    },
+
     renderProfTabs() {
-        const turmas = this.db.classes.filter(c => c.profId === this.session.user);
+        let turmas = this.db.classes.filter(c => c.profId === this.session.user);
+        
+        if(this.activeProfTab === 'anteriores') {
+            turmas = turmas.filter(t => t.consolidada);
+        } else {
+            turmas = turmas.filter(t => !t.consolidada);
+        }
+
+        turmas.sort((a,b) => a.nome.localeCompare(b.nome));
         document.getElementById('p-class-tabs').innerHTML = turmas.map(t => `<button class="tab-btn ${this.activeT?.id===t.id?'active':''}" onclick="sys.selectTurma(${t.id})">${t.nome} (${t.ano})</button>`).join('');
     },
+
     selectTurma(id) {
         this.activeT = this.db.classes.find(x => x.id === id);
         document.getElementById('p-work-area').classList.remove('hidden');
+        
+        const prazo = new Date(this.activeT.prazoNotas + "T23:59:00");
+        const expirado = prazo < new Date();
+
         document.getElementById('p-active-title').innerHTML = `
             <div>
-                <span>${this.activeT.nome} [${this.activeT.ano}] - ${this.activeT.horario} (${this.activeT.turno})</span>
+                <span>${this.activeT.nome} [${this.activeT.ano}] - ${this.activeT.horario} (${this.activeT.turno}) - ${this.activeT.ch}h</span>
                 ${this.activeT.isPP?'<span class="badge-pp">PP</span>':''}
                 ${this.activeT.consolidada?'<span class="badge-cons">CONSOLIDADA</span>':''}
+                <br><span class="${expirado?'prazo-expirado':''}">Prazo Lançamento: ${this.fmtD(this.activeT.prazoNotas)} ${expirado?'(ENCERRADO)':''}</span>
             </div>
             <div>
-                ${!this.activeT.consolidada ? `<button class="btn-green" onclick="sys.tglC(${this.activeT.id})">CONSOLIDAR TURMA</button>` : ''}
+                ${(!this.activeT.consolidada || this.session.type === 'gestao') ? `<button class="btn-green" onclick="sys.tglC(${this.activeT.id})">${this.activeT.consolidada?'ABRIR TURMA':'CONSOLIDAR TURMA'}</button>` : ''}
             </div>
         `;
         this.renderProfTabs(); this.setSub(this.activeS);
@@ -249,20 +533,38 @@ const sys = {
 
     renderSubView() {
         const t = this.activeT; let h = "";
+        const isSuperior = t.cursoOrigem.toUpperCase().includes("SUPERIOR") || t.cursoOrigem.toUpperCase().includes("GRADUAÇÃO");
+        const prazo = new Date(t.prazoNotas + "T23:59:00");
+        const prazoExpirado = prazo < new Date();
         
         if(this.activeS === 'notas') {
-            h = `<table><tr><th>Aluno</th><th>B1</th><th>B2</th><th>RS1</th><th>B3</th><th>B4</th><th>RS2</th><th>RF</th><th>Média</th><th>Sit.</th></tr>`;
-            this.db.users.filter(u => u.type === 'aluno' && t.students.includes(u.user)).forEach(s => {
-                const n = t.grades[s.user] || {}; const r = this.calc(n, t, s.user);
-                const dis = t.consolidada || s.status === 'trancado';
-                const i = (f, d) => `<td><input type="number" step="0.1" min="0" max="10" onchange="sys.updGrade(${t.id},'${s.user}','${f}',this.value)" value="${n[f]||''}" ${d?'disabled':''}></td>`;
-                h += `<tr class="${s.status==='trancado'?'aluno-trancado':''}"><td>${s.name}</td>${i('b1',dis)}${i('b2',dis)}${i('rs1',dis||!r.cRS1)}${i('b3',dis)}${i('b4',dis)}${i('rs2',dis||!r.cRS2)}${i('rf',dis||!r.emRF)}<td><b>${r.m}</b></td><td class="${r.sit==='APROVADO NO CONSELHO'?'aprovado':''}">${s.status==='trancado'?'TRANCADO':r.sit}</td></tr>`;
-            });
+            const renderX = (bim) => `<span class="sigaa-x" onclick="sys.sigaaMenu('${bim}')">✖</span>`;
+            
+            if(isSuperior) {
+                // Layout Superior: Semestres conforme imagem
+                h = `<table><tr><th>Aluno</th><th>Unid. 1</th><th>Unid. 2</th><th>Reposição</th><th>Ex. Final</th><th>Média</th><th>Sit.</th></tr>`;
+                const alus = this.db.users.filter(u => u.type === 'aluno' && t.students.includes(u.user)).sort((a,b) => a.name.localeCompare(b.name));
+                alus.forEach(s => {
+                    const n = t.grades[s.user] || {}; const r = this.calcSuperior(n, t, s.user);
+                    const dis = t.consolidada || s.status === 'trancado' || prazoExpirado;
+                    const i = (f, d) => `<td><input type="number" step="0.1" min="0" max="10" onchange="sys.updGrade(${t.id},'${s.user}','${f}',this.value)" value="${n[f]||''}" ${d?'disabled':''}></td>`;
+                    h += `<tr class="${s.status==='trancado'?'aluno-trancado':''}"><td>${s.name}</td>${i('b1',dis)}${i('b2',dis)}${i('rs1',dis)}${i('rf',dis)}<td><b>${r.m}</b></td><td class="${r.sit.includes('APROVADO')?'aprovado':''}">${s.status==='trancado'?'TRANCADO':r.sit}</td></tr>`;
+                });
+            } else {
+                // Layout Técnico: 4 Bimestres
+                h = `<table><tr><th>Aluno</th><th>B1 ${renderX('b1')}</th><th>B2 ${renderX('b2')}</th><th>RS1</th><th>B3 ${renderX('b3')}</th><th>B4 ${renderX('b4')}</th><th>RS2</th><th>RF</th><th>Média</th><th>Sit.</th></tr>`;
+                const alus = this.db.users.filter(u => u.type === 'aluno' && t.students.includes(u.user)).sort((a,b) => a.name.localeCompare(b.name));
+                alus.forEach(s => {
+                    const n = t.grades[s.user] || {}; const r = this.calc(n, t, s.user);
+                    const dis = t.consolidada || s.status === 'trancado' || prazoExpirado;
+                    const i = (f, d) => `<td><input type="number" step="0.1" min="0" max="10" onchange="sys.updGrade(${t.id},'${s.user}','${f}',this.value)" value="${n[f]||''}" ${d?'disabled':''}></td>`;
+                    h += `<tr class="${s.status==='trancado'?'aluno-trancado':''}"><td>${s.name}</td>${i('b1',dis)}${i('b2',dis)}${i('rs1',dis||!r.cRS1)}${i('b3',dis)}${i('b4',dis)}${i('rs2',dis||!r.cRS2)}${i('rf',dis||!r.emRF)}<td><b>${r.m}</b></td><td class="${r.sit==='APROVADO NO CONSELHO'?'aprovado':''}">${s.status==='trancado'?'TRANCADO':r.sit}</td></tr>`;
+                });
+            }
             h += `</table><button class="btn-blue" onclick="sys.selectTurma(${t.id}); alert('Cálculos atualizados!')">SALVAR E RECALCULAR</button>`;
         }
         else if(this.activeS === 'freq') {
             const mes = this.activeMes;
-            const numAulas = t.horario ? t.horario.split(/[MTN]/)[1].length : 1;
             const diaAula = parseInt(t.horario ? t.horario[0] : 0);
             
             let diasVisiveis = Array.from({length:31}, (_,i)=>i+1).filter(d => {
@@ -271,41 +573,76 @@ const sys = {
             }).map(d => ({ data: `${mes}-${d.toString().padStart(2,'0')}`, dia: d, extra: false }));
 
             if(t.topicos) {
-                t.topicos.filter(tp => tp.isExtra && tp.data.startsWith(mes)).forEach(tp => {
-                    if(!diasVisiveis.find(dv => dv.data === tp.data)) {
-                        diasVisiveis.push({ data: tp.data, dia: parseInt(tp.data.split('-')[2]), extra: true });
+                t.topicos.filter(tp => tp.data.startsWith(mes)).forEach(tp => {
+                    const dtTp = new Date(tp.data + "T12:00:00");
+                    const isFora = (dtTp.getDay() + 1) !== diaAula;
+                    if(isFora || tp.isExtra) {
+                        if(!diasVisiveis.find(dv => dv.data === tp.data)) {
+                            diasVisiveis.push({ data: tp.data, dia: parseInt(tp.data.split('-')[2]), extra: true });
+                        }
                     }
                 });
             }
             diasVisiveis.sort((a,b) => a.dia - b.dia);
 
-            h = `<div style="margin-bottom:15px">Mês: <select onchange="sys.activeMes=this.value; sys.renderSubView()">
+            h = `<div style="margin-bottom:15px; display:flex; align-items:center; justify-content:space-between;">
+                <div>Mês: <select onchange="sys.activeMes=this.value; sys.renderSubView()">
                 ${["01","02","03","04","05","06","07","08","09","10","11","12"].map(m => `<option value="2026-${m}" ${mes==='2026-'+m?'selected':''}>${m}/2026</option>`).join('')}
-            </select> <small style="margin-left:10px; color:green">* Colunas verdes são Aulas Extras</small></div>`;
+                </select> <small style="margin-left:10px; color:green">* Colunas verdes são Aulas Extras</small></div>
+                <button class="btn-orange" onclick="sys.exportarPdfFrequencia()">EXPORTAR PDF DE ASSINATURA</button>
+            </div>`;
             
-            h += `<div style="overflow-x:auto"><table><tr><th>Aluno</th>${diasVisiveis.map(dv=> {
+            h += `<div style="overflow-x:auto"><table><tr><th title="Clique no nome de um aluno para dar presença em massa na data de hoje">ALUNO (PRESENÇA REVERSA POR NOME)</th>${diasVisiveis.map(dv=> {
                 const canc = (t.cancelamentos||[]).includes(dv.data);
-                return `<th class="${canc?'aula-cancelada':(dv.extra?'aula-extra':'')}" onclick="sys.tglCanc(${t.id},'${dv.data}')">${dv.dia}${dv.extra?'*':''}</th>`;
+                const qtdAulas = t.qtdAulasDia?.[dv.data] || (t.horario ? t.horario.split(/[MTN]/)[1].length : 1);
+                return `<th class="${canc?'aula-cancelada':(dv.extra?'aula-extra':'')}" onclick="sys.setQtdAulas('${dv.data}')">${dv.dia}${dv.extra?'*':''}<br><small>(${qtdAulas}a)</small></th>`;
             }).join('')}</tr>`;
             
-            this.db.users.filter(u => t.students.includes(u.user)).forEach(s => {
-                h += `<tr><td style="text-align:left">${s.name}</td>${diasVisiveis.map(dv => {
+            const alus = this.db.users.filter(u => t.students.includes(u.user)).sort((a,b) => a.name.localeCompare(b.name));
+            alus.forEach(s => {
+                h += `<tr><td style="text-align:left; cursor:pointer; font-weight:bold" onclick="sys.presencaMassaHoje('${s.user}')">${s.name}</td>${diasVisiveis.map(dv => {
                     const canc = (t.cancelamentos||[]).includes(dv.data);
                     const fut = this.isFuturo(dv.data);
-                    const fv = (t.freq[s.user]||{})[dv.data] || 0;
+                    const fv = (t.freq[s.user] || {})[dv.data];
+                    const qtdMax = t.qtdAulasDia?.[dv.data] || (t.horario ? t.horario.split(/[MTN]/)[1].length : 1);
+                    
                     if(s.status==='trancado') return `<td class="aluno-trancado">T</td>`;
                     if(canc) return `<td class="aula-cancelada">-</td>`;
-                    return `<td class="${fut?'dia-futuro':(fv>0?'tem-falta':'')}" onclick="${(t.consolidada||fut)?'':'sys.updFreqAtData('+t.id+',\''+s.user+'\',\''+dv.data+'\','+numAulas+')'}">${fut?'.':fv}</td>`;
+                    
+                    const displayFalta = (fv === undefined) ? (fut ? "." : "") : fv;
+                    return `<td class="${fut?'dia-futuro':(fv>0?'tem-falta':'')}" onclick="${(t.consolidada||fut)?'':'sys.updFreqAtData('+t.id+',\''+s.user+'\',\''+dv.data+'\','+qtdMax+')'}">${displayFalta}</td>`;
                 }).join('')}</tr>`;
             });
             h += `</table></div>`;
         }
         else if(this.activeS === 'topicos') {
-            h = `<div style="background:#f9f9f9; padding:15px; border:1px solid #ddd">Data: <input type="date" id="tp-dt"> Título: <input type="text" id="tp-parent" placeholder="Ex: Funções Orgânicas" style="width:25%"> Subtópico: <input type="text" id="tp-sub" placeholder="Ex: Exercícios de Fixação" style="width:25%"> <label><input type="checkbox" id="tp-is-extra"> Aula Extra?</label> <button class="btn-blue" onclick="sys.addTp()">Lançar</button></div><hr>`;
-            t.topicos.forEach(tp => {
+            h = `<div style="background:#f9f9f9; padding:15px; border:1px solid #ddd">
+                Data: <input type="date" id="tp-dt"> 
+                Título: <input type="text" id="tp-parent" placeholder="Ex: Aula de Campo" style="width:15%"> 
+                Sub: <input type="text" id="tp-sub" placeholder="Assunto..." style="width:15%"> 
+                PDF Link: <input type="text" id="tp-pdf" placeholder="URL do arquivo..." style="width:15%">
+                Subtópico (PDF): <input type="text" id="tp-sub-pdf" placeholder="Descrição do PDF..." style="width:15%">
+                Cor: <input type="color" id="tp-color" value="#ffffff" style="width:40px">
+                <button class="btn-blue" onclick="sys.addTp()">Lançar</button>
+            </div><hr>`;
+            
+            t.topicos.sort((a, b) => new Date(a.data) - new Date(b.data));
+
+            t.topicos.forEach((tp, idx) => {
                 const dataStr = this.fmtD(tp.data);
-                const infoExtra = tp.isExtra ? ` - aula extra adicional (${dataStr} - ${dataStr})` : ` (${dataStr} - ${dataStr})`;
-                h += `<div class="topic-container"><div class="topic-parent">${tp.parent}${infoExtra}</div><div class="topic-sub">${tp.sub}</div></div>`;
+                const infoDatas = ` (${dataStr} - ${dataStr})`;
+                h += `<div class="topic-container" style="background:${tp.color || '#fff'}">
+                    <div style="float:right">
+                        <button class="btn-orange" onclick="sys.editTp(${idx})">Editar</button>
+                        <button class="btn-red" onclick="sys.delTp(${idx})">Excluir</button>
+                    </div>
+                    <div class="topic-parent">
+                        ${tp.parent}${infoDatas}
+                        ${tp.pdf ? `<a href="${tp.pdf}" target="_blank" class="btn-pdf">MATERIAL PDF</a>` : ''}
+                    </div>
+                    <div class="topic-sub">${tp.sub}</div>
+                    ${tp.pdf && tp.subPdf ? `<span class="pdf-subtopic">${tp.subPdf}</span>` : ''}
+                </div>`;
             });
         }
         else if(this.activeS === 'quiz') {
@@ -316,27 +653,236 @@ const sys = {
             (t.quizzes||[]).forEach(q => h += `<div class="quiz-card"><b>[${q.bim.toUpperCase()}]</b> ${q.pergunta} <button class="btn-red" onclick="sys.delQz(${t.id},${q.id})">Remover</button></div>`);
         }
         else if(this.activeS === 'mat') {
-            h = `<h4>Matricular Aluno</h4><select id="mat-alu">${this.db.users.filter(u=>u.type==='aluno'&&u.status==='ativo').map(u=>`<option value="${u.user}">${u.name}</option>`)}</select> <button class="btn-blue" onclick="sys.matAlu()">Matricular</button>`;
+            const cursoT = t.cursoOrigem || "NÃO IDENTIFICADO";
+            h = `<h4>Matricular Aluno em: <span style="color:var(--ifal-blue)">${cursoT}</span></h4>
+                <div style="margin-bottom:10px">
+                    Série/Ano: <input type="text" id="mf-serie" oninput="sys.filterMat()" style="width:80px"> 
+                    Turma: <input type="text" id="mf-turma" oninput="sys.filterMat()" style="width:80px">
+                </div>
+                
+                <div style="display:flex; gap: 20px;">
+                    <div style="flex:1">
+                        <h5>Matrícula Individual</h5>
+                        <select id="mat-alu" style="width:100%"></select> 
+                        <button class="btn-blue" style="margin-top:5px" onclick="sys.matAlu()">Matricular Individual</button>
+                    </div>
+                    <div style="flex:1">
+                        <h5>Matrícula em Massa</h5>
+                        <div id="mass-enroll-list" class="mass-enroll-box"></div>
+                        <button class="btn-green" style="width:100%" onclick="sys.matAluMassa()">Matricular Selecionados</button>
+                    </div>
+                </div>
+                <p><small>* Apenas alunos deste curso aparecem na lista.</small></p>`;
+            setTimeout(() => this.filterMat(), 50);
+        }
+        else if(this.activeS === 'parts') {
+            h = this.getParticipantesHTML(t);
         }
         document.getElementById('p-sub-view').innerHTML = h;
+    },
+
+    getParticipantesHTML(t) {
+        const prof = this.db.users.find(u => u.user === t.profId);
+        const alus = this.db.users.filter(u => t.students.includes(u.user)).sort((a,b) => a.name.localeCompare(b.name));
+        
+        let html = `<h4>Professor</h4><div class="grid-participantes">
+            <div class="card-participante clickable" onclick="sys.showPerfilProfessor('${prof.user}')">
+                <img src="${prof.foto || 'https://cdn-icons-png.flaticon.com/512/149/149071.png'}">
+                <span class="nome">${prof.name}</span>
+                <span class="curso">Docente (Ver Histórico/PIT)</span>
+            </div>
+        </div>
+        <h4>Alunos Matriculados</h4>
+        <div class="grid-participantes">`;
+        
+        alus.forEach(s => {
+            html += `<div class="card-participante">
+                <img src="${s.foto || 'https://cdn-icons-png.flaticon.com/512/149/149071.png'}">
+                <span class="nome">${s.name}</span>
+                <span class="curso">${s.curso || 'NÃO INFORMADO'}</span>
+            </div>`;
+        });
+        html += `</div>`;
+        return html;
+    },
+
+    showPerfilProfessor(profId) {
+        const prof = this.db.users.find(u => u.user === profId);
+        const turmas = this.db.classes.filter(t => t.profId === profId);
+        const ativas = turmas.filter(t => !t.consolidada);
+        const passadas = turmas.filter(t => t.consolidada);
+
+        let h = `
+            <div style="text-align:center; margin-bottom:20px;">
+                <img src="${prof.foto}" style="width:80px; height:80px; border-radius:50%; border:3px solid var(--ifal-blue)">
+                <h3>${prof.name}</h3>
+                <p>Docente do IFAL</p>
+            </div>
+            <div class="pit-box">
+                <strong>PLANO INDIVIDUAL DE TRABALHO (PIT):</strong><br>
+                ${prof.pit ? prof.pit.replace(/\n/g, '<br>') : '<em>Nenhum plano cadastrado.</em>'}
+            </div>
+            <hr>
+            <h4>Disciplinas Atuais (2026.1)</h4>
+            <table style="font-size:10px">
+                <tr style="background:#eee"><th>Componente</th><th>Ano/Sem</th><th>Horário</th><th>CH</th></tr>
+                ${ativas.length > 0 ? ativas.map(t => `<tr><td>${t.nome}</td><td>${t.ano}</td><td>${t.horario}</td><td>${t.ch}h</td></tr>`).join('') : '<tr><td colspan="4">Nenhuma disciplina em curso.</td></tr>'}
+            </table>
+            
+            <h4 style="margin-top:20px;">Disciplinas Ministradas Anteriormente</h4>
+            <table style="font-size:10px">
+                <tr style="background:#eee"><th>Componente</th><th>Ano/Sem</th><th>CH</th></tr>
+                ${passadas.length > 0 ? passadas.map(t => `<tr><td>${t.nome}</td><td>${t.ano}</td><td>${t.ch}h</td></tr>`).join('') : '<tr><td colspan="3">Nenhum histórico registrado.</td></tr>'}
+            </table>
+        `;
+
+        document.getElementById('modal-prof-body').innerHTML = h;
+        document.getElementById('modal-perfil-prof').classList.remove('hidden');
+    },
+
+    presencaMassaHoje(sid) {
+        const t = this.activeT;
+        if(t.consolidada) return;
+        const hoje = new Date().toISOString().split('T')[0];
+        if(!confirm(`Atribuir presença para TODOS os alunos na data de hoje (${this.fmtD(hoje)})?`)) return;
+        
+        t.students.forEach(id => { 
+            if(!t.freq[id]) t.freq[id] = {}; 
+            t.freq[id][hoje] = 0; 
+        });
+        
+        this.save(); 
+        this.renderSubView();
+    },
+
+    exportarPdfFrequencia() {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        const t = this.activeT;
+        const alus = this.db.users.filter(u => t.students.includes(u.user)).sort((a,b) => a.name.localeCompare(b.name));
+        
+        doc.setFontSize(16);
+        doc.text("IFAL - LISTA DE FREQUÊNCIA PARA ASSINATURA", 105, 15, { align: "center" });
+        doc.setFontSize(10);
+        doc.text(`Turma: ${t.nome} | Ano: ${t.ano} | Professor: ${this.session.name}`, 14, 25);
+        doc.text(`Data: ____/____/2026`, 14, 30);
+
+        const body = alus.map((a, index) => [index + 1, a.user, a.name, "___________________________________"]);
+
+        doc.autoTable({
+            startY: 35,
+            head: [['Nº', 'Matrícula', 'Nome do Aluno', 'Assinatura']],
+            body: body,
+            theme: 'grid',
+            headStyles: { fillColor: [0, 74, 141] },
+            styles: { fontSize: 8 }
+        });
+
+        doc.save(`Frequencia_${t.nome}_${t.ano}.pdf`);
+    },
+
+    delTp(idx) { if(confirm("Deseja excluir este tópico?")) { this.activeT.topicos.splice(idx,1); this.save(); this.renderSubView(); } },
+    editTp(idx) {
+        let tp = this.activeT.topicos[idx];
+        let nT = prompt("Novo Título:", tp.parent); if(nT) tp.parent = nT;
+        let nS = prompt("Novo Assunto:", tp.sub); if(nS) tp.sub = nS;
+        this.save(); this.renderSubView();
+    },
+
+    sigaaMenu(bim) {
+        const op = prompt("Opções de Soma (Igual SIGAA):\n1. Somar +0.5 em todas as notas\n2. Somar +1.0 em todas as notas\n3. Zerar Bimestre");
+        const t = this.activeT;
+        if(op === '1' || op === '2') {
+            const add = op === '1' ? 0.5 : 1.0;
+            t.students.forEach(sid => {
+                if(!t.grades[sid]) t.grades[sid] = {};
+                let atual = parseFloat(t.grades[sid][bim] || 0);
+                t.grades[sid][bim] = Math.min(10, atual + add).toFixed(2);
+            });
+        } else if(op === '3') {
+            t.students.forEach(sid => { if(t.grades[sid]) t.grades[sid][bim] = "0.00"; });
+        }
+        this.save(); this.renderSubView();
+    },
+
+    setQtdAulas(data) {
+        const n = prompt("Quantidade de aulas para este dia:", "1");
+        if(n) {
+            if(!this.activeT.qtdAulasDia) this.activeT.qtdAulasDia = {};
+            this.activeT.qtdAulasDia[data] = parseInt(n);
+            this.save(); this.renderSubView();
+        }
+    },
+
+    filterMat() {
+        const s = document.getElementById('mf-serie').value.toUpperCase();
+        const t = document.getElementById('mf-turma').value.toUpperCase();
+        const cursoDaTurma = this.activeT.cursoOrigem; 
+        
+        let alus = this.db.users.filter(u => u.type === 'aluno' && u.status === 'ativo' && u.curso === cursoDaTurma);
+        
+        if(s) alus = alus.filter(u => u.serie && u.serie.toUpperCase().includes(s));
+        if(t) alus = alus.filter(u => u.turma && u.turma.toUpperCase().includes(t));
+        alus.sort((a,b) => a.name.localeCompare(b.name));
+        
+        document.getElementById('mat-alu').innerHTML = alus.map(u => `<option value="${u.user}">${u.name} [${u.serie||''}${u.turma||''}]</option>`).join('');
+        document.getElementById('mass-enroll-list').innerHTML = alus.map(u => `
+            <div><label><input type="checkbox" class="mass-check" value="${u.user}"> ${u.name}</label></div>
+        `).join('');
     },
 
     calc(n, t, sid) {
         const p = (v) => (v!==""&&v!==undefined)?parseFloat(v):-1;
         let b1=p(n.b1), b2=p(n.b2), rs1=p(n.rs1), b3=p(n.b3), b4=p(n.b4), rs2=p(n.rs2), rf=p(n.rf);
         let m1_base = (b1>=0&&b2>=0)?(b1+b2)/2:0; let m1 = m1_base;
-        if(((b1>=0&&b1<7)||(b2>=0&&b2<7))&&rs1>m1) m1=rs1;
+        if(((b1>=0&&b1<7)|| (b2>=0&&b2<7))&&rs1>m1) m1=rs1;
         let m2_base = (b3>=0&&b4>=0)?(b3+b4)/2:0; let m2 = m2_base;
         if(((b3>=0&&b3<7)||(b4>=0&&b4<7))&&rs2>m2) m2=rs2;
         let mf = Math.round(((m1+m2)/2) * 2) / 2;
-        let sit = "CURSANDO", emRF = false;
+        let sit = "MATRICULADO", emRF = false;
         if(b1>=0&&b2>=0&&b3>=0&&b4>=0){
             if(mf>=6) sit="APROVADO"; 
             else if(mf>=4){ emRF=true; if(rf>=0){ let f=Math.round(((mf+rf)/2)*2)/2; mf=f; sit=f>=5?"APROVADO":"REPROVADO";} else sit="REC. FINAL";} 
             else sit="REPROVADO";
         }
         if(t.conselho && t.conselho.includes(sid)) sit = "APROVADO NO CONSELHO";
-        return { m: mf.toFixed(2).replace('.',','), sit, emRF, cRS1:m1_base<7, cRS2:m2_base<7 };
+        
+        let displayM = mf.toFixed(2).replace('.',',');
+        if(this.session.type === 'aluno' && !t.consolidada) displayM = "--";
+        return { m: displayM, sit, emRF, cRS1:m1_base<7, cRS2:m2_base<7 };
+    },
+
+    // NOVA FUNÇÃO: Cálculos para Ensino Superior
+    calcSuperior(n, t, sid) {
+        const p = (v) => (v!==""&&v!==undefined)?parseFloat(v):-1;
+        let u1=p(n.b1), u2=p(n.b2), reposicao=p(n.rs1), final=p(n.rf);
+        
+        // No superior, a reposição substitui a menor nota entre U1 e U2
+        let m1 = u1, m2 = u2;
+        if(reposicao > 0) {
+            if(u1 < u2 && reposicao > u1) m1 = reposicao;
+            else if(u2 <= u1 && reposicao > u2) m2 = reposicao;
+        }
+
+        let mediaParcial = (m1 >= 0 && m2 >= 0) ? (m1 + m2) / 2 : 0;
+        let mf = mediaParcial;
+        let sit = "MATRICULADO";
+
+        if(u1 >= 0 && u2 >= 0) {
+            if(mediaParcial >= 7) sit = "APROVADO";
+            else if(mediaParcial >= 4) {
+                if(final >= 0) {
+                    mf = (mediaParcial + final) / 2;
+                    sit = mf >= 5 ? "APROVADO" : "REPROVADO";
+                } else {
+                    sit = "PROVA FINAL";
+                }
+            } else {
+                sit = "REPROVADO";
+            }
+        }
+
+        return { m: mf.toFixed(2).replace('.',','), sit };
     },
 
     updGrade(tid, sid, f, v) { let val = parseFloat(v); if(val < 0) val = 0; if(val > 10) val = 10; const t=this.db.classes.find(x=>x.id===tid); if(!t.grades[sid]) t.grades[sid]={}; t.grades[sid][f]=val.toFixed(2); this.save(); },
@@ -345,122 +891,488 @@ const sys = {
     updFreqAtData(tid, sid, k, max) { 
         const t=this.db.classes.find(x=>x.id===tid); 
         if(!t.freq[sid]) t.freq[sid]={}; 
-        let cur=t.freq[sid][k]||0; 
-        t.freq[sid][k]=(cur+1)>max?0:cur+1; 
+        let cur = (t.freq[sid][k] === undefined) ? -1 : t.freq[sid][k]; 
+        t.freq[sid][k] = (cur + 1) > max ? 0 : cur + 1; 
         this.save(); this.renderSubView(); 
     },
 
     tglCanc(tid, k) { const t=this.db.classes.find(x=>x.id===tid); if(!t.cancelamentos) t.cancelamentos=[]; const i=t.cancelamentos.indexOf(k); if(i>-1) t.cancelamentos.splice(i,1); else t.cancelamentos.push(k); this.save(); this.renderSubView(); },
-    addTp() { const p = document.getElementById('tp-parent').value, s = document.getElementById('tp-sub').value, d = document.getElementById('tp-dt').value, ex = document.getElementById('tp-is-extra').checked; if(!p || !d) return alert("Erro"); this.activeT.topicos.push({ data: d, parent: p.toUpperCase(), sub: s, isExtra: ex }); this.save(); this.renderSubView(); },
+    
+    addTp() { 
+        const p = document.getElementById('tp-parent').value, 
+              s = document.getElementById('tp-sub').value, 
+              d = document.getElementById('tp-dt').value, 
+              cl = document.getElementById('tp-color').value,
+              pdf = document.getElementById('tp-pdf').value,
+              subPdf = document.getElementById('tp-sub-pdf').value;
+        if(!p || !d) return alert("Preencha Título e Data!"); 
+        const dataSelecionada = new Date(d + "T12:00:00");
+        const diaSemana = dataSelecionada.getDay() + 1; 
+        const diaDisciplina = parseInt(this.activeT.horario ? this.activeT.horario[0] : 0);
+        let ex = (diaSemana !== diaDisciplina);
+        this.activeT.topicos.push({ data: d, parent: p, sub: s, isExtra: ex, color: cl, pdf: pdf, subPdf: subPdf }); 
+        this.save(); this.renderSubView(); 
+    },
+
     addQz() { if(!this.activeT.quizzes) this.activeT.quizzes=[]; this.activeT.quizzes.push({ id:Date.now(), bim:document.getElementById('qz-bim').value, val:parseFloat(document.getElementById('qz-v').value), pergunta:document.getElementById('qz-q').value, op:{A:document.getElementById('qz-a').value,B:document.getElementById('qz-b').value,C:document.getElementById('qz-c').value,D:document.getElementById('qz-d').value}, correta:document.getElementById('qz-cor').value, respondidos:[] }); this.save(); this.renderSubView(); },
     delQz(tid, qid) { const t=this.db.classes.find(x=>x.id===tid); t.quizzes=t.quizzes.filter(x=>x.id!==qid); this.save(); this.renderSubView(); },
     matAlu() { const v=document.getElementById('mat-alu').value; if(!this.activeT.students.includes(v)) this.activeT.students.push(v); this.save(); this.renderSubView(); },
 
+    matAluMassa() {
+        const checks = document.querySelectorAll('.mass-check:checked');
+        let count = 0;
+        checks.forEach(cb => {
+            if(!this.activeT.students.includes(cb.value)) {
+                this.activeT.students.push(cb.value);
+                count++;
+            }
+        });
+        this.save();
+        this.renderSubView();
+        alert(`${count} alunos matriculados com sucesso!`);
+    },
+
     renderAluno() {
         const my = this.db.classes.filter(c => c.students.includes(this.session.user));
-        const anos = [...new Set(my.map(c => c.ano))].sort(); let hB = "";
+        const anos = [...new Set(my.map(c => c.ano))].sort(); 
+        
+        let hB = "";
         anos.forEach(ano => {
             hB += `<div class="ano-header">PERÍODO: ${ano}</div><table><tr><th>Disciplina</th><th>B1</th><th>B2</th><th>RS1</th><th>B3</th><th>B4</th><th>RS2</th><th>RF</th><th>Média</th><th>Faltas</th><th>Sit.</th></tr>`;
-            my.filter(c => c.ano === ano).forEach(c => {
+            const turmasAno = my.filter(c => c.ano === ano).sort((a,b) => a.nome.localeCompare(b.nome));
+            turmasAno.forEach(c => {
                 const n = c.grades[this.session.user]||{}; const r = this.calc(n, c, this.session.user);
                 let ft = 0; if(c.freq[this.session.user]) Object.values(c.freq[this.session.user]).forEach(v => ft += v);
-                const isT = this.session.status === 'trancado';
-                const sCl = isT?'cursando':(c.consolidada?(r.sit.includes('APROVADO')?'aprovado':'reprovado'):'cursando');
-                hB += `<tr class="${isT?'aluno-trancado':''}"><td>${c.nome} ${c.isPP?'(PP)':''}</td><td>${this.fmt(n.b1)}</td><td>${this.fmt(n.b2)}</td><td>${this.fmt(n.rs1,1)}</td><td>${this.fmt(n.b3)}</td><td>${this.fmt(n.b4)}</td><td>${this.fmt(n.rs2,1)}</td><td>${this.fmt(n.rf,1)}</td><td><b>${r.m}</b></td><td>${ft}</td><td class="${sCl}">${isT?'TRANCADO':(c.consolidada?r.sit:'MATRICULADO')}</td></tr>`;
+                const isT = this.session.status === 'trancado' || this.session.status === 'concluido';
+                const sCl = isT? (this.session.status === 'concluido' ? 'concluido' : 'MATRICULADO') : (c.consolidada?(r.sit.includes('APROVADO')?'aprovado':'reprovado'):'MATRICULADO');
+                hB += `<tr class="${isT?'aluno-trancado':''}">
+                    <td>${c.nome} ${c.isPP?'(PP)':''}</td>
+                    <td>${this.fmt(n.b1, 'bim')}</td>
+                    <td>${this.fmt(n.b2, 'bim')}</td>
+                    <td>${this.fmt(n.rs1, 'rec')}</td>
+                    <td>${this.fmt(n.b3, 'bim')}</td>
+                    <td>${this.fmt(n.b4, 'bim')}</td>
+                    <td>${this.fmt(n.rs2, 'rec')}</td>
+                    <td>${this.fmt(n.rf, 'rec')}</td>
+                    <td><b>${r.m}</b></td>
+                    <td>${ft}</td>
+                    <td class="${sCl}">${(this.session.status === 'concluido') ? 'CONCLUÍDO' : (isT?'TRANCADO':(c.consolidada?r.sit:'MATRICULADO'))}</td>
+                </tr>`;
             });
             hB += `</table>`;
         });
-        document.getElementById('a-boletim').innerHTML = hB || "Sem matrículas.";
+        document.getElementById('a-boletim').innerHTML = hB || "Sem matricículas.";
         document.getElementById('a-freq-list').innerHTML = my.map(c => {
             let ft = 0; const list = Object.keys(c.freq[this.session.user]||{}).sort().map(k => { const val = c.freq[this.session.user][k]; ft += val; return `<div class="topic-container" style="padding:5px 10px">${this.fmtD(k)} - <strong>${val} Faltas</strong></div>`; }).join('');
             return `<div class="turma-header">${c.nome}</div>${list}<div class="resumo-faltas">TOTAL: ${ft}</div>`;
         }).join('');
-        document.getElementById('a-topicos').innerHTML = my.map(c => `<div class="turma-header">${c.nome}</div>${c.topicos.map(tp => { const d = this.fmtD(tp.data); return `<div class="topic-container"><div class="topic-parent">${tp.parent}${tp.isExtra?' - aula extra adicional ('+d+' - '+d+')':' ('+d+' - '+d+')'}</div><div class="topic-sub">${tp.sub}</div></div>`; }).join('')}`).join('');
+        document.getElementById('a-topicos').innerHTML = my.map(c => {
+            c.topicos.sort((a, b) => new Date(a.data) - new Date(b.data));
+            return `<div class="turma-header">${c.nome}</div>${c.topicos.map(tp => { 
+                const d = this.fmtD(tp.data); 
+                return `<div class="topic-container" style="background:${tp.color || '#fff'}"><div class="topic-parent">${tp.parent} (${d} - ${d}) ${tp.pdf ? `<a href="${tp.pdf}" target="_blank" class="btn-pdf">PDF</a>` : ''}</div><div class="topic-sub">${tp.sub}</div>${tp.pdf && tp.subPdf ? `<span class="pdf-subtopic">${tp.subPdf}</span>` : ''}</div>`; 
+            }).join('')}`
+        }).join('');
+        document.getElementById('a-parts').innerHTML = my.map(c => `<div class="turma-header" style="margin-top:20px">${c.nome}</div>` + this.getParticipantesHTML(c)).join('');
         this.renderAlunoQuiz();
+        this.renderHistoricoAluno();
     },
+
+    renderHistoricoAluno() {
+        const my = this.db.classes.filter(c => c.students.includes(this.session.user));
+        let html = `<h3>Histórico Escolar Oficial</h3>`;
+        
+        if(this.session.status === 'concluido') {
+            html += `<div style="background:#e8f5e9; border:1px solid #2e7d32; padding:15px; margin-bottom:20px; font-weight:bold; color:#2e7d32; text-align:center;">
+                        SITUAÇÃO DO ALUNO: CONCLUÍDO / FINALIZADO
+                     </div>
+                     <button class="btn-blue" style="width:100%; margin-bottom:20px" onclick="sys.imprimirHistorico()">EMITIR PDF DO HISTÓRICO</button>`;
+        } else {
+            html += `<p style="color:red">Atenção: O histórico oficial completo com status "CONCLUÍDO" só é liberado após a conclusão total dos períodos pela coordenação.</p>`;
+        }
+
+        const anos = [...new Set(my.map(c => c.ano))].sort();
+        let tabelaHtml = `<div id="print-area" class="historico-container">
+            <div class="historico-header">
+                <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/1/15/IFAL_logo.png/200px-IFAL_logo.png" style="width:50px"><br>
+                <strong>INSTITUTO FEDERAL DE ALAGOAS - IFAL</strong><br>
+                <span>HISTÓRICO ACADÊMICO SIMPLIFICADO</span>
+            </div>
+            <p><strong>ALUNO:</strong> ${this.session.name} | <strong>MATRÍCULA:</strong> ${this.session.user}</p>
+            <p><strong>CURSO:</strong> ${this.session.curso}</p>
+            <p><strong>STATUS ATUAL:</strong> <span class="${this.session.status === 'concluido' ? 'concluido' : ''}">${this.session.status.toUpperCase()}</span></p>`;
+
+        anos.forEach(ano => {
+            tabelaHtml += `<div class="ano-header" style="background:#333">PERÍODO: ${ano}</div>
+            <table style="width:100%; border:1px solid #000">
+                <tr style="background:#eee"><th>DISCIPLINA</th><th>MÉDIA</th><th>FALTAS</th><th>SITUAÇÃO</th></tr>`;
+            
+            const turmasAno = my.filter(c => c.ano === ano && (c.consolidada || this.session.status === 'concluido'));
+            if(turmasAno.length === 0) {
+                tabelaHtml += `<tr><td colspan="4">Nenhuma disciplina consolidada neste período.</td></tr>`;
+            } else {
+                turmasAno.forEach(c => {
+                    const n = c.grades[this.session.user] || {};
+                    const isSuperior = c.cursoOrigem.toUpperCase().includes("SUPERIOR");
+                    const r = isSuperior ? this.calcSuperior(n, c, this.session.user) : this.calc(n, c, this.session.user);
+                    let ft = 0; if(c.freq[this.session.user]) Object.values(c.freq[this.session.user]).forEach(v => ft += v);
+                    tabelaHtml += `<tr><td style="text-align:left">${c.nome}</td><td>${r.m}</td><td>${ft}</td><td>${this.session.status === 'concluido' ? 'CONCLUÍDO' : r.sit}</td></tr>`;
+                });
+            }
+            tabelaHtml += `</table>`;
+        });
+        
+        tabelaHtml += `<div style="margin-top:30px; text-align:center; font-size:10px">
+            Documento emitido via SIGAA IFAL em ${new Date().toLocaleString()}<br>
+            A autenticidade pode ser confirmada na Coordenadoria de Registro Acadêmico.
+        </div></div>`;
+
+        document.getElementById('a-historico').innerHTML = html + tabelaHtml;
+    },
+
+    imprimirHistorico() {
+        const conteudo = document.getElementById('print-area').innerHTML;
+        const win = window.open('', '', 'height=700,width=900');
+        win.document.write('<html><head><title>Histórico IFAL</title>');
+        win.document.write('<style>body{font-family:sans-serif; padding:20px;} table{width:100%; border-collapse:collapse; margin-top:10px;} th,td{border:1px solid #000; padding:8px; text-align:center;} .historico-header{text-align:center; border-bottom:2px solid #000; margin-bottom:20px;} .ano-header{background:#333; color:#fff; padding:5px; margin-top:15px;} .concluido{color:green; font-weight:bold;}</style>');
+        win.document.write('</head><body>');
+        win.document.write(conteudo);
+        win.document.write('</body></html>');
+        win.document.close();
+        win.print();
+    },
+
     renderAlunoQuiz() {
         const my = this.db.classes.filter(c => c.students.includes(this.session.user));
         let h = ""; my.forEach(t => (t.quizzes||[]).forEach(q => { if(!q.respondidos.includes(this.session.user)) h += `<div class="quiz-card"><p><b>${t.nome} - ${q.bim.toUpperCase()}</b></p><p>${q.pergunta}</p><button class="btn-gray" onclick="sys.ansQ(${t.id},${q.id},'A')">A: ${q.op.A}</button> <button class="btn-gray" onclick="sys.ansQ(${t.id},${q.id},'B')">B: ${q.op.B}</button> <button class="btn-gray" onclick="sys.ansQ(${t.id},${q.id},'C')">C: ${q.op.C}</button> <button class="btn-gray" onclick="sys.ansQ(${t.id},${q.id},'D')">D: ${q.op.D}</button></div>`; }));
-        document.getElementById('r-a-quiz').innerHTML = h || "Nada pendente.";
+        document.getElementById('r-a-quiz').innerHTML = h || "NÃO HÁ ATIVIDADES PENDENTE.";
     },
     ansQ(tid, qid, res) {
         const t=this.db.classes.find(x=>x.id===tid); const q=t.quizzes.find(x=>x.id===qid);
         if(!t.quizBuffer) t.quizBuffer = {}; if(!t.quizBuffer[this.session.user]) t.quizBuffer[this.session.user] = {};
-        if(q.correta === res) { t.quizBuffer[this.session.user][q.bim] = (parseFloat(t.quizBuffer[this.session.user][q.bim] || 0) + q.val).toFixed(2); alert("Correto! Aguarde lançamento."); } else alert("Errado!");
+        if(q.correta === res) { t.quizBuffer[this.session.user][q.bim] = (parseFloat(t.quizBuffer[this.session.user][q.bim] || 0) + q.val).toFixed(2); alert("ATIVIDADE RESPONDIDA! AGUARDE A CORREÇÃO."); } else alert("Errado!");
         q.respondidos.push(this.session.user); this.save(); this.renderAluno();
     },
 
     renderGestao() {
-        let hM = ""; for(let c in this.db.library) hM += `<h4>${c}</h4><table>${(this.db.library[c]||[]).map(d => `<tr><td style="text-align:left">${d.nome} (${d.cod})</td><td><button class="btn-red" onclick="sys.delD('${c}','${d.cod}')">Excluir</button></td></tr>`).join('')}</table>`;
+        let hM = ""; 
+        for(let c in this.db.library) {
+            hM += `<div class="folder-curso">
+                PASTA: ${c}
+                <button class="btn-blue" style="font-size:10px" onclick="sys.abrirPastaNotas('${c}')">ABRIR PASTA DA TURMA (ALTERAR NOTAS)</button>
+            </div>
+            <table>${(this.db.library[c]||[]).sort((a,b)=>a.nome.localeCompare(b.nome)).map(d => `<tr><td style="text-align:left">${d.nome} (${d.cod})</td><td><button class="btn-red" onclick="sys.delD('${c}','${d.cod}')">Excluir</button></td></tr>`).join('')}</table>`;
+        }
         document.getElementById('render-g-matriz').innerHTML = hM;
         
-        let hT = this.db.classes.map(c => {
+        this.populaSelectsCursos();
+        this.updDisc();
+        document.getElementById('p-sel-prof').innerHTML = this.db.users.filter(u => u.type === 'professor').map(u => `<option value="${u.user}">${u.name}</option>`).join('');
+
+        let hT = this.db.classes.sort((a,b)=>a.nome.nome?.localeCompare(b.nome)).map(c => {
             const aluReprovados = this.db.users.filter(u => u.type === 'aluno' && c.students.includes(u.user)).map(u => {
-                const res = this.calc(c.grades[u.user] || {}, c, u.user);
+                const isSup = c.cursoOrigem.toUpperCase().includes("SUPERIOR");
+                const res = isSup ? this.calcSuperior(c.grades[u.user] || {}, c, u.user) : this.calc(c.grades[u.user] || {}, c, u.user);
                 return { sid: u.user, name: u.name, sit: res.sit };
-            }).filter(x => x.sit !== "APROVADO" && x.sit !== "APROVADO NO CONSELHO" && x.sit !== "CURSANDO" && x.sit !== "TRANCADO");
+            }).filter(x => x.sit !== "APROVADO" && x.sit !== "APROVADO NO CONSELHO" && x.sit !== "MATRICULADO" && x.sit !== "TRANCADO" && x.sit !== "CONCLUÍDO").sort((a,b)=>a.name.localeCompare(b.name));
 
             let listRep = aluReprovados.map(r => `
                 <div style="font-size:10px; border-top:1px solid #eee; padding:5px; display:flex; justify-content:space-between; align-items:center">
                     <span>${r.name} (${r.sit})</span>
-                    <button class="btn-orange" style="font-size:9px" onclick="sys.aprovarConselho(${c.id},'${r.sid}')">Aprovar Conselho</button>
+                    <div>
+                        <button class="btn-orange" style="font-size:9px" onclick="sys.aprovarConselho(${c.id},'${r.sid}')">Aprovar Conselho</button>
+                        <button class="btn-red" style="font-size:9px" onclick="sys.reprovarParaNovaTurma('${r.sid}', '${c.nome}')">Adicionar Nova Turma (Reprovado)</button>
+                    </div>
                 </div>
             `).join('');
 
+            const prof = this.db.users.find(u => u.user === c.profId)?.name || "N/A";
             return `<div style="background:#fff; padding:10px; border:1px solid #ccc; margin-bottom:15px">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px">
-                    <strong>${c.ano} - ${c.nome} (${c.turno}) ${c.isPP?'[PP]':''}</strong>
+                    <strong>${c.ano} - ${c.nome} [Prof: ${prof}] (${c.turno}) ${c.isPP?'[PP]':''}</strong>
                     <button class="${c.consolidada?'btn-blue':'btn-green'}" onclick="sys.tglC(${c.id})">${c.consolidada?'ABRIR (DESCONSOLIDAR)':'CONSOLIDAR'}</button>
                 </div>
-                ${listRep ? '<div><small><strong>Pendentes Conselho:</strong></small>'+listRep+'</div>' : ''}
+                <div>Prazo Lançamento: ${this.fmtD(c.prazoNotas)}</div>
+                ${listRep ? '<div><small><strong>Gestão de Reprovados/Conselho:</strong></small>'+listRep+'</div>' : ''}
             </div>`;
         }).join('');
         document.getElementById('render-g-turmas').innerHTML = hT;
         this.renderGestaoAlunos();
     },
 
+    abrirPastaNotas(cursoNome) {
+        document.getElementById('area-notas-pasta').classList.remove('hidden');
+        document.getElementById('titulo-pasta-notas').innerText = `Gestão de Notas: ${cursoNome}`;
+        
+        const alus = this.db.users.filter(u => u.type === 'aluno' && u.curso === cursoNome).sort((a,b)=>a.name.localeCompare(b.name));
+        const turmasDoCurso = this.db.classes.filter(t => t.cursoOrigem === cursoNome);
+
+        let html = `<table><tr><th>Aluno</th>`;
+        turmasDoCurso.forEach(t => {
+            html += `<th colspan="4" style="background:#f0f8ff">${t.nome}<br><small>B1 | B2 | B3 | B4</small></th>`;
+        });
+        html += `</tr>`;
+
+        alus.forEach(al => {
+            html += `<tr><td style="text-align:left"><b>${al.name}</b></td>`;
+            turmasDoCurso.forEach(t => {
+                const n = t.grades[al.user] || {};
+                const inputNota = (bim) => `<td><input type="number" step="0.1" style="width:30px; font-size:9px" value="${n[bim]||''}" onchange="sys.updGrade(${t.id},'${al.user}','${bim}',this.value)"></td>`;
+                html += inputNota('b1') + inputNota('b2') + inputNota('b3') + inputNota('b4');
+            });
+            html += `</tr>`;
+        });
+        html += `</table><p><small>* Alterações são salvas automaticamente ao mudar o valor.</small></p>`;
+        document.getElementById('render-notas-pasta').innerHTML = turmasDoCurso.length > 0 ? html : "Nenhuma disciplina vinculada a esta pasta.";
+    },
+
+    importarPlanilha() {
+        const file = document.getElementById('ga-file-import').files[0];
+        const cursoAlvo = document.getElementById('ga-import-curso').value;
+        if(!file) return alert("Selecione um arquivo!");
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const data = new Uint8Array(e.target.result);
+            const workbook = XLSX.read(data, {type: 'array'});
+            const sheet = workbook.Sheets[workbook.SheetNames[0]];
+            const json = XLSX.utils.sheet_to_json(sheet);
+
+            let importados = 0;
+            json.forEach(row => {
+                const nome = String(row.Nome || row.NOME || row.nome || row.Aluno || "").toUpperCase().trim();
+                const matricula = String(row.Matricula || row.MATRICULA || row.matricula || row.Inscrição || "").trim();
+                
+                if(nome && matricula && !this.db.users.find(x => x.user === matricula)) {
+                    this.db.users.push({
+                        name: nome,
+                        user: matricula,
+                        curso: cursoAlvo,
+                        serie: String(row.Serie || row.SERIE || "").toUpperCase(),
+                        turma: String(row.Turma || row.TURMA || "").toUpperCase(),
+                        pass: "123", type: 'aluno', status: 'ativo', email: '', 
+                        foto: 'https://cdn-icons-png.flaticon.com/512/149/149071.png'
+                    });
+                    importados++;
+                }
+            });
+            this.save();
+            this.renderGestaoAlunos();
+            alert(`${importados} alunos importados com sucesso!`);
+        };
+        reader.readAsArrayBuffer(file);
+    },
+
+    async importarPDF() {
+        const file = document.getElementById('ga-file-import').files[0];
+        const cursoAlvo = document.getElementById('ga-import-curso').value;
+        if(!file || file.type !== "application/pdf") return alert("Selecione um arquivo PDF válido!");
+
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+            const typedarray = new Uint8Array(e.target.result);
+            const pdf = await pdfjsLib.getDocument(typedarray).promise;
+            let totalText = "";
+
+            for (let i = 1; i <= pdf.numPages; i++) {
+                const page = await pdf.getPage(i);
+                const textContent = await page.getTextContent();
+                totalText += textContent.items.map(item => item.str).join(" ");
+            }
+
+            const regexMatricula = /\b(\d{10,14})\b/g;
+            const regexNome = /([A-ZÀ-Ú]{3,}(?:\s[A-ZÀ-Ú]{2,})+)/g;
+            
+            const matriculas = totalText.match(regexMatricula) || [];
+            const nomes = totalText.match(regexNome) || [];
+
+            let importados = 0;
+            matriculas.forEach((mat, index) => {
+                if(nomes[index] && !this.db.users.find(x => x.user === mat)) {
+                    this.db.users.push({
+                        name: nomes[index].trim(),
+                        user: mat,
+                        curso: cursoAlvo,
+                        serie: "", turma: "",
+                        pass: "123", type: 'aluno', status: 'ativo', email: '', 
+                        foto: 'https://cdn-icons-png.flaticon.com/512/149/149071.png'
+                    });
+                    importados++;
+                }
+            });
+
+            this.save();
+            this.renderGestaoAlunos();
+            alert(`${importados} alunos extraídos do PDF com sucesso!`);
+        };
+        reader.readAsArrayBuffer(file);
+    },
+
     aprovarConselho(tid, sid) {
-        if(!confirm("Deseja aprovar este aluno via conselho de classe?")) return;
+        if(!confirm("Deseja aprovar via conselho?")) return;
         const t = this.db.classes.find(x => x.id === tid);
-        if(!t.conselho) t.conselho = [];
-        if(!t.conselho.includes(sid)) t.conselho.push(sid);
+        if(!t.conselho) t.conselho = []; if(!t.conselho.includes(sid)) t.conselho.push(sid);
         this.save(); this.renderGestao();
     },
 
-    gestaoAddAluno() {
-        const u = { name: document.getElementById('ga-name').value.toUpperCase(), user: document.getElementById('ga-user').value, pass: "123", type: 'aluno', status: 'ativo' };
-        if(this.db.users.find(x => x.user === u.user)) return alert("Já existe!");
-        this.db.users.push(u); this.save(); this.renderGestaoAlunos();
+    reprovarParaNovaTurma(sid, discNome) {
+        const u = this.db.users.find(x => x.user === sid);
+        if(confirm(`O aluno ${u.name} será marcado para cursar a disciplina "${discNome}" em uma nova turma no ano seguinte. Confirmar?`)) {
+            alert(`Aluno ${u.name} preparado para nova turma em 2027.`);
+        }
     },
+
+    gestaoAddAluno() {
+        const editId = document.getElementById('ga-editing-id').value;
+        const uData = { 
+            name: document.getElementById('ga-name').value.toUpperCase(), 
+            user: document.getElementById('ga-user').value, 
+            curso: document.getElementById('ga-curso').value,
+            serie: document.getElementById('ga-serie').value.toUpperCase(), 
+            turma: document.getElementById('ga-turma').value.toUpperCase(), 
+            pass: "123", type: 'aluno', status: 'ativo', email: '', foto: 'https://cdn-icons-png.flaticon.com/512/149/149071.png'
+        };
+
+        if(editId) {
+            const idx = this.db.users.findIndex(x => x.user === editId);
+            this.db.users[idx] = {...this.db.users[idx], ...uData};
+            alert("Dados alterados com sucesso!");
+        } else {
+            if(this.db.users.find(x => x.user === uData.user)) return alert("Já existe!");
+            this.db.users.push(uData);
+            alert("Aluno cadastrado!");
+        }
+        
+        this.save(); this.clearAluForm(); this.renderGestaoAlunos();
+    },
+
+    editAlu(uid) {
+        const u = this.db.users.find(x => x.user === uid);
+        document.getElementById('ga-editing-id').value = u.user;
+        document.getElementById('ga-name').value = u.name;
+        document.getElementById('ga-user').value = u.user;
+        document.getElementById('ga-curso').value = u.curso;
+        document.getElementById('ga-serie').value = u.serie;
+        document.getElementById('ga-turma').value = u.turma;
+        
+        document.getElementById('ga-form-title').innerText = "Alterar Dados do Aluno";
+        document.getElementById('ga-btn-save').innerText = "Salvar Alterações";
+        document.getElementById('ga-btn-cancel').classList.remove('hidden');
+    },
+
+    clearAluForm() {
+        document.getElementById('ga-editing-id').value = "";
+        document.getElementById('ga-name').value = "";
+        document.getElementById('ga-user').value = "";
+        document.getElementById('ga-serie').value = "";
+        document.getElementById('ga-turma').value = "";
+        document.getElementById('ga-form-title').innerText = "Pré-cadastrar Aluno";
+        document.getElementById('ga-btn-save').innerText = "Cadastrar Aluno";
+        document.getElementById('ga-btn-cancel').classList.add('hidden');
+    },
+
+    rematricular(uid) {
+        const u = this.db.users.find(x => x.user === uid);
+        const novoAno = prompt("Para qual Série/Ano deseja rematricular?", u.serie);
+        if(novoAno) {
+            u.serie = novoAno.toUpperCase();
+            u.status = 'ativo';
+            this.save();
+            this.renderGestaoAlunos();
+            alert("Rematrícula realizada com sucesso!");
+        }
+    },
+
+    concluirAluno(uid) {
+        const u = this.db.users.find(x => x.user === uid);
+        if(confirm(`Confirmar conclusão do curso para ${u.name}? Tudo vinculado a ele será marcado como concluído.`)) {
+            u.status = 'concluido';
+            // Cascatear status para todas as turmas onde ele está
+            this.db.classes.forEach(c => {
+                if(c.students.includes(uid)) {
+                    if(!c.concluidos) c.concluidos = [];
+                    if(!c.concluidos.includes(uid)) c.concluidos.push(uid);
+                }
+            });
+            this.save();
+            this.renderGestaoAlunos();
+            alert("Aluno e turmas vinculadas marcados como CONCLUÍDOS!");
+        }
+    },
+
+    concluirEmMassa(curso) {
+        const alus = this.db.users.filter(u => u.type === 'aluno' && u.curso === curso && u.status !== 'concluido');
+        if(alus.length === 0) return alert("Nenhum aluno ativo encontrado nesta pasta.");
+        if(confirm(`Deseja marcar os ${alus.length} alunos da pasta ${curso} como CONCLUÍDOS?`)) {
+            alus.forEach(u => this.concluirAluno(u.user));
+            alert("Conclusão em massa realizada!");
+        }
+    },
+
     updAluSt(uid, st) { const u = this.db.users.find(x => x.user === uid); if(st === 'excluir') { if(confirm("Certeza?")) this.db.users = this.db.users.filter(x => x.user !== uid); } else u.status = st; this.save(); this.renderGestaoAlunos(); },
+    
     renderGestaoAlunos() {
-        const alus = this.db.users.filter(u => u.type === 'aluno');
-        document.getElementById('render-g-alunos').innerHTML = `<table><tr><th>Nome</th><th>Matrícula</th><th>Status</th><th>Ações</th></tr>${alus.map(a => `<tr><td style="text-align:left">${a.name}</td><td>${a.user}</td><td>${a.status.toUpperCase()}</td><td><button class="btn-orange" onclick="sys.updAluSt('${a.user}','trancado')">Trancar</button> <button class="btn-blue" onclick="sys.updAluSt('${a.user}','ativo')">Ativar</button> <button class="btn-red" onclick="sys.updAluSt('${a.user}','excluir')">Excluir</button></td></tr>`).join('')}</table>`;
+        let html = "";
+        LISTA_CURSOS_EXPANDIDA.forEach(cur => {
+            const alus = this.db.users.filter(u => u.type === 'aluno' && u.curso === cur).sort((a,b)=>a.name.localeCompare(b.name));
+            html += `<div class="folder-curso">
+                        <span>PASTA: ${cur} (${alus.length} ALUNOS)</span>
+                        <button class="btn-green" style="font-size:10px" onclick="sys.concluirEmMassa('${cur}')">CONCLUIR ALUNOS EM MASSA</button>
+                     </div>`;
+            
+            if(alus.length > 0) {
+                html += `<table><tr><th>Nome</th><th>Matrícula</th><th>Série/Turma</th><th>Status</th><th>Ações</th></tr>${alus.map(a => `<tr><td style="text-align:left">${a.name}</td><td>${a.user}</td><td>${a.serie||''} ${a.turma||''}</td><td class="${a.status === 'concluido' ? 'concluido' : ''}">${a.status.toUpperCase()}</td><td>
+                    <button class="btn-orange" onclick="sys.editAlu('${a.user}')">Alterar Dados</button> 
+                    <button class="btn-green" onclick="sys.rematricular('${a.user}')">Rematrícula</button>
+                    ${(a.status !== 'concluido') ? `<button class="btn-green" style="background:#2e7d32" onclick="sys.concluirAluno('${a.user}')">CONCLUIR</button>` : ''}
+                    <button class="btn-blue" onclick="sys.updAluSt('${a.user}','trancado')">Trancar</button> 
+                    <button class="btn-red" onclick="sys.updAluSt('${a.user}','excluir')">Excluir</button>
+                </td></tr>`).join('')}</table>`;
+            } else {
+                html += `<p style="padding:10px; background:#fff; margin:0; border:1px solid #ccc; border-top:none; color:#999">Nenhum aluno matriculado neste curso.</p>`;
+            }
+        });
+        document.getElementById('render-g-alunos').innerHTML = html;
     },
     delD(c, cod) { this.db.library[c]=this.db.library[c].filter(x=>x.cod!==cod); this.save(); this.renderGestao(); },
     
     tglC(id) { 
         const c = this.db.classes.find(x => x.id === id);
-        // Se a turma já está consolidada, apenas a gestão pode abrir
-        if(c.consolidada && this.session.type !== 'gestao') {
-            return alert("Apenas a gestão pode desconsolidar uma turma!");
+        if(c.consolidada && this.session.type !== 'gestao') return alert("Apenas a gestão pode desconsolidar!");
+        c.consolidada = !c.consolidada; this.save(); 
+        if(this.session.type === 'gestao') {
+            this.renderGestao();
+        } else {
+            this.renderProfTabs();
+            this.activeT = null;
+            document.getElementById('p-work-area').classList.add('hidden');
         }
-        c.consolidada = !c.consolidada; 
-        this.save(); 
-        if(this.session.type === 'gestao') this.renderGestao();
-        else this.selectTurma(id);
     },
     
-    addDisc() { this.db.library[document.getElementById('g-course').value].push({nome:document.getElementById('g-name').value.toUpperCase(), cod:document.getElementById('g-code').value.toUpperCase()}); this.save(); this.renderGestao(); },
+    addDisc() { 
+        const cursoKey = document.getElementById('g-course').value;
+        if (!this.db.library[cursoKey]) this.db.library[cursoKey] = [];
+        this.db.library[cursoKey].push({nome:document.getElementById('g-name').value.toUpperCase(), cod:document.getElementById('g-code').value.toUpperCase()}); 
+        this.save(); this.renderGestao(); 
+    },
     deleteAllClasses() { if(confirm("Apagar TUDO?")) { this.db.classes = []; this.save(); this.renderGestao(); } },
 
     switchTab(id, btn) {
         document.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'));
         document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.getElementById('screen-perfil').classList.add('hidden');
         document.getElementById(id).classList.remove('hidden'); btn.classList.add('active');
-        if(id==='a-boletim') this.renderAluno();
+        if(id==='a-boletim' || id==='a-parts' || id==='a-historico') this.renderAluno();
         if(id==='g-alunos') this.renderGestaoAlunos();
         if(id==='g-consolidar') this.renderGestao();
+    }
+};
+
+window.onload = () => {
+    if(sys.session) sys.start();
+    else {
+        sys.initLibrary();
+        sys.populaSelectsCursos();
     }
 };
 </script>
